@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
 import { usersApi } from "@/lib/api/users.api";
@@ -59,6 +60,28 @@ export default function SettingsPage() {
       )}
 
       <div className="grid max-w-2xl gap-8">
+        <section className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm">
+          <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-on-surface">
+            <MaterialIcon name="tune" /> Workspace
+          </h3>
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Link
+              href="/categories"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-outline-variant/20 bg-surface-container-low px-4 py-3 text-sm font-bold text-primary hover:bg-surface-container-high/80"
+            >
+              <MaterialIcon name="sell" />
+              Categories
+            </Link>
+            <Link
+              href="/accounts"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-outline-variant/20 bg-surface-container-low px-4 py-3 text-sm font-bold text-primary hover:bg-surface-container-high/80"
+            >
+              <MaterialIcon name="account_balance" />
+              Accounts
+            </Link>
+          </div>
+        </section>
+
         <section className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-8 shadow-sm">
           <h3 className="mb-6 flex items-center gap-2 text-lg font-bold text-on-surface">
             <MaterialIcon name="person" /> Profile

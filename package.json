@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "NODE_OPTIONS='--max-old-space-size=3072' next dev --port 3000 --webpack --disable-source-maps",
+    "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
+    "build:safe": "LOW_MEM_BUILD=1 NODE_OPTIONS='--max-old-space-size=2048' next build",
+    "start": "NODE_OPTIONS='--max-old-space-size=3072' next start --port 3000",
     "lint": "eslint",
     "test": "vitest run"
   },

@@ -1,7 +1,7 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { authStorage } from "../auth-storage";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/v1";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/v1";
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,

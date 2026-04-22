@@ -13,6 +13,7 @@ const nav = [
   { href: "/goals", label: "Goals", icon: "track_changes" },
   { href: "/reports", label: "Reports", icon: "bar_chart" },
   { href: "/accounts", label: "Accounts", icon: "credit_card" },
+  { href: "/categories", label: "Categories", icon: "sell" },
   { href: "/settings", label: "Settings", icon: "settings" },
 ] as const;
 
