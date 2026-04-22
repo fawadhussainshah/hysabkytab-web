@@ -23,15 +23,22 @@ export function AppSidebar() {
   return (
     <aside className="fixed left-0 top-0 z-50 flex h-screen w-72 flex-col bg-[#f5f2ff] py-8 shadow-[4px_0_24px_-4px_rgba(1,45,29,0.06)]">
       <div className="mb-10 px-8">
-        <div className="flex items-start gap-3">
-          <BrandLogo className="mt-0.5 h-9 w-9 shrink-0 rounded-lg object-contain" />
-          <div className="min-w-0">
-            <h1 className="text-xl font-black tracking-tighter text-primary">HysabKytab</h1>
+        <Link
+          href="/dashboard"
+          className="group flex items-start gap-3 rounded-xl outline-none ring-primary/0 transition-shadow focus-visible:ring-2 focus-visible:ring-primary/30"
+        >
+          <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/80 p-1.5 shadow-sm ring-1 ring-primary/10 transition group-hover:bg-white group-hover:shadow-md">
+            <BrandLogo className="h-full w-full rounded-md object-contain" />
+          </div>
+          <div className="min-w-0 pt-0.5">
+            <h1 className="text-xl font-black tracking-tighter text-primary transition group-hover:text-primary/90">
+              HysabKytab
+            </h1>
             <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/70">
               The Trusted Ledger
             </p>
           </div>
-        </div>
+        </Link>
       </div>
       <nav className="flex flex-1 flex-col gap-1">
         {nav.map((item) => {
