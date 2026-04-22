@@ -15,6 +15,7 @@ const TYPES: { value: AccountType; label: string }[] = [
   { value: "credit_card", label: "Credit card" },
   { value: "savings", label: "Savings" },
   { value: "investment", label: "Investment" },
+  { value: "person", label: "Person" },
 ];
 
 export default function NewAccountPage() {
@@ -23,17 +24,31 @@ export default function NewAccountPage() {
   const qc = useQueryClient();
   const [name, setName] = useState("");
   const [type, setType] = useState<AccountType>("bank");
+  const [currentValueInput, setCurrentValueInput] = useState("");
+  const [valueSign, setValueSign] = useState<1 | -1>(1);
   const [isDefault, setIsDefault] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function parseStartingBalance(): number | undefined {
+    const trimmed = currentValueInput.trim();
+    if (!trimmed) return undefined;
+    const n = Number.parseFloat(trimmed.replace(/,/g, ""));
+    if (!Number.isFinite(n)) return undefined;
+    const mag = Math.abs(n);
+    return mag * valueSign;
+  }
+
   const mut = useMutation({
-    mutationFn: () =>
-      accountsApi.create({
+    mutationFn: () => {
+      const balance = parseStartingBalance();
+      return accountsApi.create({
         name: name.trim(),
         type,
+        ...(balance !== undefined ? { balance } : {}),
         currency: user?.currency,
         isDefault,
-      }),
+      });
+    },
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["accounts"] });
       await qc.invalidateQueries({ queryKey: ["reports"] });
@@ -87,6 +102,44 @@ export default function NewAccountPage() {
                 </option>
               ))}
             </select>
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-on-surface-variant">Current value (optional)</label>
+            <p className="mt-0.5 text-xs text-on-surface-variant/80">
+              Set the opening balance. Choose whether it is positive or negative (for example money owed).
+            </p>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+              <input
+                type="number"
+                inputMode="decimal"
+                step="any"
+                min={0}
+                value={currentValueInput}
+                onChange={(e) => setCurrentValueInput(e.target.value)}
+                className="min-w-0 flex-1 rounded-xl bg-surface-container-low px-4 py-3 text-sm"
+                placeholder="0"
+              />
+              <div className="flex shrink-0 gap-1 rounded-xl border border-outline-variant/20 p-1">
+                <button
+                  type="button"
+                  onClick={() => setValueSign(1)}
+                  className={`flex-1 rounded-lg px-4 py-2 text-sm font-bold sm:flex-none ${
+                    valueSign === 1 ? "bg-primary text-on-primary" : "text-on-surface-variant"
+                  }`}
+                >
+                  Positive
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setValueSign(-1)}
+                  className={`flex-1 rounded-lg px-4 py-2 text-sm font-bold sm:flex-none ${
+                    valueSign === -1 ? "bg-primary text-on-primary" : "text-on-surface-variant"
+                  }`}
+                >
+                  Negative
+                </button>
+              </div>
+            </div>
           </div>
           <label className="flex items-center gap-2 text-sm font-medium text-on-surface">
             <input

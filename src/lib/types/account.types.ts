@@ -3,7 +3,8 @@ export type AccountType =
   | "bank"
   | "credit_card"
   | "savings"
-  | "investment";
+  | "investment"
+  | "person";
 
 export interface Account {
   id: string;
@@ -22,6 +23,7 @@ export interface Account {
 export interface CreateAccountPayload {
   name: string;
   type: AccountType;
+  balance?: number;
   currency?: string;
   color?: string;
   icon?: string;
