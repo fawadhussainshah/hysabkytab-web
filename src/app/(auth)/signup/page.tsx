@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BrandLogo } from "@/components/brand-logo";
 import { MaterialIcon } from "@/components/material-icon";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -38,7 +39,7 @@ export default function SignupPage() {
         <div className="absolute inset-0 z-0 bg-primary" />
         <div className="absolute inset-0 z-0 bg-gradient-to-br from-primary to-primary-container opacity-90" />
         <div className="relative z-10 flex items-center gap-3">
-          <MaterialIcon name="account_balance_wallet" className="text-4xl text-secondary-fixed" filled />
+          <BrandLogo className="h-12 w-12 shrink-0 rounded-lg object-contain" />
           <h1 className="text-3xl font-black uppercase tracking-tighter text-white">HysabKytab</h1>
         </div>
         <div className="relative z-10 max-w-lg">
@@ -60,6 +61,9 @@ export default function SignupPage() {
       </aside>
       <main className="flex w-full items-center justify-center bg-surface-container-low p-8 lg:w-1/2">
         <div className="w-full max-w-md space-y-10">
+          <div className="lg:hidden">
+            <BrandLogo className="h-10 w-10 rounded-lg object-contain" />
+          </div>
           <div className="space-y-2">
             <h2 className="text-3xl font-bold tracking-tight text-on-surface">Create your account</h2>
             <p className="text-base text-on-surface-variant">

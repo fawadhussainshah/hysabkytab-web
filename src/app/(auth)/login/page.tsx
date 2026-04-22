@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BrandLogo } from "@/components/brand-logo";
 import { MaterialIcon } from "@/components/material-icon";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -35,7 +36,7 @@ export default function LoginPage() {
         <div className="pointer-events-none absolute -right-96 -top-96 h-[800px] w-[800px] rounded-full bg-white/5 blur-[120px]" />
         <div className="pointer-events-none absolute -bottom-48 -left-48 h-[600px] w-[600px] rounded-full bg-secondary/10 blur-[100px]" />
         <div className="relative z-10 flex items-center gap-3">
-          <MaterialIcon name="account_balance_wallet" className="text-4xl text-secondary-fixed" filled />
+          <BrandLogo className="h-12 w-12 shrink-0 rounded-lg object-contain" />
           <span className="text-3xl font-black uppercase tracking-tighter text-white">HysabKytab</span>
         </div>
         <div className="relative z-10 max-w-xl">
@@ -65,6 +66,9 @@ export default function LoginPage() {
       </section>
       <section className="flex w-full flex-col items-center justify-center bg-background px-8 sm:px-12 md:px-24 lg:w-5/12">
         <div className="w-full max-w-md">
+          <div className="mb-8 md:hidden">
+            <BrandLogo className="h-10 w-10 rounded-lg object-contain" />
+          </div>
           <div className="mb-10 text-center lg:text-left">
             <h2 className="mb-2 text-3xl font-bold tracking-tight text-on-surface">Welcome back</h2>
             <p className="font-medium text-on-surface-variant">

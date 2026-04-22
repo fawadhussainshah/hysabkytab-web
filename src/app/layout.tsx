@@ -12,6 +12,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "HysabKytab | The Trusted Ledger",
   description: "Personal finance — desktop companion for HysabKytab",
+  icons: {
+    icon: "/brand-logo.jpg",
+    apple: "/brand-logo.jpg",
+  },
 };
 
 export default function RootLayout({

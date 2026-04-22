@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { BrandLogo } from "@/components/brand-logo";
 import { MaterialIcon } from "@/components/material-icon";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -22,10 +23,15 @@ export function AppSidebar() {
   return (
     <aside className="fixed left-0 top-0 z-50 flex h-screen w-72 flex-col bg-[#f5f2ff] py-8 shadow-[4px_0_24px_-4px_rgba(1,45,29,0.06)]">
       <div className="mb-10 px-8">
-        <h1 className="text-xl font-black tracking-tighter text-primary">HysabKytab</h1>
-        <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/70">
-          The Trusted Ledger
-        </p>
+        <div className="flex items-start gap-3">
+          <BrandLogo className="mt-0.5 h-9 w-9 shrink-0 rounded-lg object-contain" />
+          <div className="min-w-0">
+            <h1 className="text-xl font-black tracking-tighter text-primary">HysabKytab</h1>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/70">
+              The Trusted Ledger
+            </p>
+          </div>
+        </div>
       </div>
       <nav className="flex flex-1 flex-col gap-1">
         {nav.map((item) => {
