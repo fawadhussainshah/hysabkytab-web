@@ -16,6 +16,7 @@ export interface Transaction {
   note?: string;
   date: string;
   receiptUrl?: string;
+  attachmentKeys?: string[] | null;
   transferToAccountId?: string;
   transferToAccount?: Account;
   createdAt: string;
@@ -31,6 +32,7 @@ export interface CreateTransactionPayload {
   note?: string;
   date: string;
   receiptUrl?: string;
+  attachmentKeys?: string[];
   transferToAccountId?: string;
 }
 

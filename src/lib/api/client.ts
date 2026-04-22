@@ -1,10 +1,10 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { authStorage } from "../auth-storage";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/v1";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/v1";
 
 export const apiClient = axios.create({
-  baseURL: BASE_URL,
+  baseURL: API_BASE_URL,
   headers: { "Content-Type": "application/json" },
   timeout: 15000,
 });
@@ -67,7 +67,7 @@ apiClient.interceptors.response.use(
 
       const response = await axios.post<{
         data: { accessToken: string; refreshToken: string };
-      }>(`${BASE_URL}/auth/refresh`, { refreshToken });
+      }>(`${API_BASE_URL}/auth/refresh`, { refreshToken });
 
       const { accessToken, refreshToken: newRt } = response.data.data;
       authStorage.setTokens(accessToken, newRt);

@@ -11,6 +11,10 @@ import { transactionsApi } from "@/lib/api/transactions.api";
 import type { TransactionType } from "@/lib/types/transaction.types";
 import { useAuth } from "@/contexts/auth-context";
 import { formatMoney, formatMoneySigned } from "@/lib/format";
+import { getTransactionAttachmentKeys } from "@/lib/utils/transaction-attachments";
+import { TransactionAttachmentsModal } from "@/components/transaction-attachments-modal";
+import { TransactionDetailModal } from "@/components/transaction-detail-modal";
+import type { Transaction } from "@/lib/types/transaction.types";
 
 function TransactionsContent() {
   const { user } = useAuth();
@@ -21,6 +25,8 @@ function TransactionsContent() {
 
   const [typeFilter, setTypeFilter] = useState<TransactionType | "">("");
   const [accountId, setAccountId] = useState("");
+  const [attachmentsFor, setAttachmentsFor] = useState<{ id: string; keys: string[] } | null>(null);
+  const [detailTx, setDetailTx] = useState<Transaction | null>(null);
 
   const { data: accounts } = useQuery({
     queryKey: ["accounts"],
@@ -123,14 +129,35 @@ function TransactionsContent() {
                   <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
                     Amount
                   </th>
+                  <th className="px-6 py-4 text-center text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                    Photos
+                  </th>
+                  <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                    Details
+                  </th>
                   <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/5">
-                {rows.map((row) => (
-                  <tr key={row.id} className="hover:bg-surface-container-low/30">
+                {rows.map((row) => {
+                  const attKeys = getTransactionAttachmentKeys(row);
+                  return (
+                  <tr
+                    key={row.id}
+                    className="cursor-pointer hover:bg-surface-container-low/30"
+                    onClick={() => setDetailTx(row)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View transaction details: ${row.category?.name ?? row.type} ${row.amount}`}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setDetailTx(row);
+                      }
+                    }}
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
@@ -166,20 +193,61 @@ function TransactionsContent() {
                         ? formatMoney(row.amount, row.currency || currency)
                         : formatMoneySigned(row.amount, row.currency || currency, row.type)}
                     </td>
+                    <td className="px-6 py-4 text-center">
+                      {attKeys.length > 0 ? (
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center rounded-lg bg-primary-container/40 px-2 py-1.5 text-primary hover:bg-primary-container/60"
+                          title={`${attKeys.length} image(s)`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAttachmentsFor({ id: row.id, keys: attKeys });
+                          }}
+                        >
+                          <MaterialIcon name="photo_library" className="text-lg" />
+                          <span className="ml-1 text-xs font-bold">{attKeys.length}</span>
+                        </button>
+                      ) : (
+                        <span className="text-on-surface-variant/40">—</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <button
                         type="button"
-                        className="text-xs font-bold text-error hover:underline"
-                        onClick={() => {
-                          if (!confirm("Delete this transaction?")) return;
-                          deleteMut.mutate(row.id);
+                        className="text-xs font-bold text-primary hover:underline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDetailTx(row);
                         }}
                       >
-                        Delete
+                        View
                       </button>
                     </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+                        <Link
+                          href={`/transactions/${row.id}/edit`}
+                          className="text-xs font-bold text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Edit
+                        </Link>
+                        <button
+                          type="button"
+                          className="text-xs font-bold text-error hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!confirm("Delete this transaction?")) return;
+                            deleteMut.mutate(row.id);
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
             {rows.length === 0 && (
@@ -188,6 +256,19 @@ function TransactionsContent() {
           </div>
         )}
       </div>
+
+      <TransactionDetailModal
+        open={!!detailTx}
+        onClose={() => setDetailTx(null)}
+        transaction={detailTx}
+      />
+
+      <TransactionAttachmentsModal
+        open={!!attachmentsFor}
+        onClose={() => setAttachmentsFor(null)}
+        objectKeys={attachmentsFor?.keys ?? []}
+        title="Transaction photos"
+      />
     </>
   );
 }

@@ -3,16 +3,20 @@
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import Link from "next/link";
+import { useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
+import { TransactionDetailModal } from "@/components/transaction-detail-modal";
 import { accountsApi } from "@/lib/api/accounts.api";
 import { budgetsApi } from "@/lib/api/budgets.api";
 import { reportsApi } from "@/lib/api/reports.api";
 import { transactionsApi } from "@/lib/api/transactions.api";
+import type { Transaction } from "@/lib/types/transaction.types";
 import { useAuth } from "@/contexts/auth-context";
 import { formatMoney, formatMoneySigned } from "@/lib/format";
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const [detailTx, setDetailTx] = useState<Transaction | null>(null);
   const currency = user?.currency ?? "PKR";
   const month = dayjs().format("YYYY-MM");
 
@@ -231,11 +235,27 @@ export default function DashboardPage() {
                   <th className="px-8 py-4 text-right text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
                     Amount
                   </th>
+                  <th className="px-8 py-4 text-right text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/5">
                 {(txPage?.items ?? []).map((row) => (
-                  <tr key={row.id} className="transition-colors hover:bg-surface-container-low/30">
+                  <tr
+                    key={row.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View transaction details: ${row.category?.name ?? row.type} ${row.amount}`}
+                    className="cursor-pointer transition-colors hover:bg-surface-container-low/30"
+                    onClick={() => setDetailTx(row)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setDetailTx(row);
+                      }
+                    }}
+                  >
                     <td className="px-8 py-4">
                       <div className="flex items-center gap-3">
                         <div
@@ -274,6 +294,27 @@ export default function DashboardPage() {
                       {row.type === "transfer"
                         ? formatMoney(row.amount, row.currency || currency)
                         : formatMoneySigned(row.amount, row.currency || currency, row.type)}
+                    </td>
+                    <td className="px-8 py-4 text-right">
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          className="text-xs font-bold text-primary hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDetailTx(row);
+                          }}
+                        >
+                          Details
+                        </button>
+                        <Link
+                          href={`/transactions/${row.id}/edit`}
+                          className="text-xs font-bold text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Edit
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -340,6 +381,12 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <TransactionDetailModal
+        open={!!detailTx}
+        onClose={() => setDetailTx(null)}
+        transaction={detailTx}
+      />
     </>
   );
 }
