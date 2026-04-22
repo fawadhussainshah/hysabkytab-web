@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
 import { useAuth } from "@/contexts/auth-context";
+import { UserAvatar } from "@/components/user-avatar";
 
 export function AppHeader() {
   const { user } = useAuth();
@@ -52,24 +54,24 @@ export function AppHeader() {
         >
           <MaterialIcon name="help_outline" />
         </button>
-        <div className="flex items-center gap-3 border-l border-outline-variant/20 pl-4">
+        <Link
+          href="/settings"
+          className="flex items-center gap-3 border-l border-outline-variant/20 pl-4 transition hover:opacity-90"
+          title="Profile & profile photo"
+        >
           <div className="text-right">
             <p className="text-xs font-bold text-on-surface">{user?.fullName ?? "—"}</p>
             <p className="text-[10px] text-on-surface-variant">{user?.currency ?? ""}</p>
           </div>
-          {user?.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={user.avatarUrl}
-              alt=""
-              className="h-10 w-10 rounded-full border-2 border-white object-cover shadow-sm"
+          {user ? (
+            <UserAvatar
+              fullName={user.fullName}
+              avatarKey={user.avatarUrl}
+              size={40}
+              className="border-2 border-white shadow-sm"
             />
-          ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-fixed text-sm font-black text-primary">
-              {user?.fullName?.charAt(0).toUpperCase() ?? "?"}
-            </div>
-          )}
-        </div>
+          ) : null}
+        </Link>
       </div>
     </header>
   );

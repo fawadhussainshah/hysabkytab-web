@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
 import { MaterialIcon } from "@/components/material-icon";
 import { useAuth } from "@/contexts/auth-context";
+import { UserAvatar } from "@/components/user-avatar";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
@@ -14,7 +15,7 @@ const nav = [
   { href: "/reports", label: "Reports", icon: "bar_chart" },
   { href: "/accounts", label: "Accounts", icon: "credit_card" },
   { href: "/categories", label: "Categories", icon: "sell" },
-  { href: "/settings", label: "Settings", icon: "settings" },
+  { href: "/settings", label: "Settings & profile", icon: "settings" },
 ] as const;
 
 export function AppSidebar() {
@@ -69,24 +70,17 @@ export function AppSidebar() {
           Add Transaction
         </Link>
         {user && (
-          <div className="mt-6 flex items-center gap-3 rounded-xl border border-outline-variant/10 bg-surface-container-low px-2 py-3">
-            {user.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={user.avatarUrl}
-                alt=""
-                className="h-8 w-8 rounded-full object-cover"
-              />
-            ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-fixed text-xs font-black text-primary">
-                {user.fullName.charAt(0).toUpperCase()}
-              </div>
-            )}
+          <Link
+            href="/settings"
+            className="mt-6 flex items-center gap-3 rounded-xl border border-outline-variant/10 bg-surface-container-low px-2 py-3 transition hover:bg-surface-container-high/80"
+          >
+            <UserAvatar fullName={user.fullName} avatarKey={user.avatarUrl} size={32} />
             <div className="min-w-0 flex-1 overflow-hidden">
               <p className="truncate text-xs font-bold text-on-surface">{user.fullName}</p>
               <p className="truncate text-[10px] text-on-surface-variant">{user.email}</p>
+              <p className="truncate text-[10px] font-semibold text-primary">Edit profile & photo</p>
             </div>
-          </div>
+          </Link>
         )}
       </div>
     </aside>
