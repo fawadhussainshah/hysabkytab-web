@@ -7,6 +7,7 @@ export const authApi = {
     password: string;
     fullName: string;
     currency?: string;
+    country?: string;
   }) =>
     apiClient.post<{ data: AuthTokens }>("/auth/signup", data).then(extractData),
 

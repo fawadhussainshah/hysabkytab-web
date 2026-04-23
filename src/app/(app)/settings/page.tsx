@@ -6,12 +6,11 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { MaterialIcon } from "@/components/material-icon";
 import { UserAvatar } from "@/components/user-avatar";
+import { referenceDataApi, type CountryOption } from "@/lib/api/reference-data.api";
 import { usersApi } from "@/lib/api/users.api";
 import { uploadsApi } from "@/lib/api/uploads.api";
 import { compressImageForUpload } from "@/lib/utils/image-compress";
 import { useAuth } from "@/contexts/auth-context";
-
-const CURRENCIES = ["PKR", "USD", "EUR", "GBP", "AED", "SAR"] as const;
 
 function formatUploadOrApiError(e: unknown): string {
   if (axios.isAxiosError(e)) {
@@ -32,6 +31,8 @@ export default function SettingsPage() {
   const qc = useQueryClient();
   const [fullName, setFullName] = useState(user?.fullName ?? "");
   const [currency, setCurrency] = useState(user?.currency ?? "PKR");
+  const [country, setCountry] = useState(user?.country ?? "PK");
+  const [countries, setCountries] = useState<CountryOption[]>([]);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
@@ -41,8 +42,19 @@ export default function SettingsPage() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setAvatarKey(user?.avatarUrl ?? "");
-  }, [user?.avatarUrl]);
+    let mounted = true;
+    referenceDataApi
+      .getCountries()
+      .then((data) => {
+        if (mounted) setCountries(data);
+      })
+      .catch(() => {
+        if (mounted) setCountries([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     refreshUser().catch(() => {});
@@ -53,6 +65,7 @@ export default function SettingsPage() {
       usersApi.updateProfile({
         fullName: fullName.trim(),
         currency,
+        country,
         avatarUrl: avatarKey || "",
       }),
     onSuccess: (updated) => {
@@ -100,6 +113,9 @@ export default function SettingsPage() {
     },
     onError: () => setErr("Check your current password."),
   });
+
+  const selectedCountry = countries.find((c) => c.code === country);
+  const availableCurrencies = selectedCountry?.currencies?.length ? selectedCountry.currencies : [currency];
 
   return (
     <>
@@ -203,13 +219,37 @@ export default function SettingsPage() {
               />
             </div>
             <div>
+              <label className="text-sm font-semibold text-on-surface-variant">Country</label>
+              <select
+                value={country}
+                onChange={(e) => {
+                  const nextCountry = e.target.value;
+                  setCountry(nextCountry);
+                  const selected = countries.find((c) => c.code === nextCountry);
+                  if (!selected?.currencies?.length) return;
+                  if (!selected.currencies.includes(currency)) setCurrency(selected.currencies[0]);
+                }}
+                className="mt-1 w-full rounded-xl bg-surface-container-low px-4 py-3 text-sm"
+              >
+                {countries.length ? (
+                  countries.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.name} ({c.code})
+                    </option>
+                  ))
+                ) : (
+                  <option value={country}>{country}</option>
+                )}
+              </select>
+            </div>
+            <div>
               <label className="text-sm font-semibold text-on-surface-variant">Currency</label>
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
                 className="mt-1 w-full rounded-xl bg-surface-container-low px-4 py-3 text-sm"
               >
-                {CURRENCIES.map((c) => (
+                {availableCurrencies.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>

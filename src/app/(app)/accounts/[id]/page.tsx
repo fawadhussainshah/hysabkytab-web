@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { AccountIcon } from "@/components/account-icon";
 import { MaterialIcon } from "@/components/material-icon";
 import { accountsApi } from "@/lib/api/accounts.api";
 import { formatMoney } from "@/lib/format";
@@ -34,9 +35,10 @@ export default function AccountDetailPage() {
               backgroundColor: account.color ? `${account.color}33` : "var(--color-surface-container-high)",
             }}
           >
-            <MaterialIcon
-              name={(account.icon as string) || "account_balance"}
+            <AccountIcon
+              icon={account.icon}
               className="text-3xl text-primary"
+              imageClassName="h-9 w-9 rounded object-contain"
             />
           </div>
           <div>

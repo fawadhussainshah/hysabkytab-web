@@ -3,6 +3,7 @@ export interface User {
   email: string;
   fullName: string;
   currency: string;
+  country?: string;
   avatarUrl?: string;
 }
 

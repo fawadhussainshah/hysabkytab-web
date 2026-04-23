@@ -3,9 +3,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { AccountIcon } from "@/components/account-icon";
 import { MaterialIcon } from "@/components/material-icon";
 import { accountsApi } from "@/lib/api/accounts.api";
+import { referenceDataApi, type InstitutionOption } from "@/lib/api/reference-data.api";
 import type { AccountType } from "@/lib/types/account.types";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -27,7 +29,41 @@ export default function NewAccountPage() {
   const [currentValueInput, setCurrentValueInput] = useState("");
   const [valueSign, setValueSign] = useState<1 | -1>(1);
   const [isDefault, setIsDefault] = useState(false);
+  const [bankInstitutions, setBankInstitutions] = useState<InstitutionOption[]>([]);
+  const [selectedInstitutionId, setSelectedInstitutionId] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const institutionType = useMemo(() => {
+    if (type === "bank" || type === "savings") return "bank";
+    if (type === "credit_card") return "credit_card";
+    return null;
+  }, [type]);
+
+  useEffect(() => {
+    if (institutionType !== "bank") return;
+    let mounted = true;
+    referenceDataApi
+      .getBanksByCountry(user?.country || "PK")
+      .then((banks) => {
+        if (!mounted) return;
+        setBankInstitutions(banks);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setBankInstitutions([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [institutionType, user?.country]);
+
+  const institutions = useMemo(() => {
+    if (institutionType === "credit_card") return referenceDataApi.getCardNetworks();
+    if (institutionType === "bank") return bankInstitutions;
+    return [];
+  }, [institutionType, bankInstitutions]);
+  const selectedInstitution =
+    institutions.find((item) => item.id === selectedInstitutionId) || institutions[0];
 
   function parseStartingBalance(): number | undefined {
     const trimmed = currentValueInput.trim();
@@ -46,6 +82,7 @@ export default function NewAccountPage() {
         type,
         ...(balance !== undefined ? { balance } : {}),
         currency: user?.currency,
+        ...(selectedInstitution?.logoUrl ? { icon: selectedInstitution.logoUrl } : {}),
         isDefault,
       });
     },
@@ -103,6 +140,45 @@ export default function NewAccountPage() {
               ))}
             </select>
           </div>
+          {institutionType && (
+            <div>
+              <label className="text-sm font-semibold text-on-surface-variant">
+                {institutionType === "bank" ? "Bank" : "Card network"}
+              </label>
+              <select
+                value={selectedInstitution?.id || ""}
+                onChange={(e) => {
+                  const nextId = e.target.value;
+                  setSelectedInstitutionId(nextId);
+                  const selected = institutions.find((item) => item.id === nextId);
+                  if (selected) setName(selected.name);
+                }}
+                className="mt-1 w-full rounded-xl bg-surface-container-low px-4 py-3 text-sm"
+              >
+                {!institutions.length ? (
+                  <option value="">No institutions found for selected country</option>
+                ) : (
+                  institutions.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              {selectedInstitution && (
+                <div className="mt-2 flex items-center gap-2 rounded-xl border border-outline-variant/20 bg-surface-container-low px-3 py-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded bg-surface-container-high">
+                    <AccountIcon
+                      icon={selectedInstitution.logoUrl}
+                      className="text-primary"
+                      imageClassName="h-6 w-6 object-contain"
+                    />
+                  </div>
+                  <p className="text-sm text-on-surface">{selectedInstitution.name}</p>
+                </div>
+              )}
+            </div>
+          )}
           <div>
             <label className="text-sm font-semibold text-on-surface-variant">Current value (optional)</label>
             <p className="mt-0.5 text-xs text-on-surface-variant/80">

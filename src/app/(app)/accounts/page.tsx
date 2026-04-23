@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { MaterialIcon } from "@/components/material-icon";
+import { AccountIcon } from "@/components/account-icon";
 import { accountsApi } from "@/lib/api/accounts.api";
 import { formatMoney } from "@/lib/format";
 
@@ -53,7 +53,11 @@ export default function AccountsPage() {
                     backgroundColor: a.color ? `${a.color}33` : "var(--color-surface-container-high)",
                   }}
                 >
-                  <MaterialIcon name={(a.icon as string) || "account_balance"} className="text-2xl text-primary" />
+                  <AccountIcon
+                    icon={a.icon}
+                    className="text-2xl text-primary"
+                    imageClassName="h-7 w-7 rounded object-contain"
+                  />
                 </div>
                 <div>
                   <p className="font-bold text-on-surface">{a.name}</p>

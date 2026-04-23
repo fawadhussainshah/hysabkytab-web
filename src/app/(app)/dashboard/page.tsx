@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { useState } from "react";
+import { AccountIcon } from "@/components/account-icon";
 import { MaterialIcon } from "@/components/material-icon";
 import { TransactionDetailModal } from "@/components/transaction-detail-modal";
 import { accountsApi } from "@/lib/api/accounts.api";
@@ -124,9 +125,19 @@ export default function DashboardPage() {
 
       <div className="mb-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="rounded-xl bg-surface-container-lowest p-8 shadow-sm lg:col-span-2">
-          <div className="mb-10 flex items-center justify-between">
+          <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-bold text-on-surface">Cash flow trend</h3>
             <span className="text-xs font-bold text-on-surface-variant">Last 6 months</span>
+          </div>
+          <div className="mb-6 flex items-center gap-5 text-xs font-semibold text-on-surface-variant">
+            <div className="inline-flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+              <span>Income</span>
+            </div>
+            <div className="inline-flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-secondary/50" />
+              <span>Expense</span>
+            </div>
           </div>
           <div className="flex h-64 items-end justify-between gap-2 px-2">
             {(trends ?? []).map((t) => {
@@ -352,9 +363,10 @@ export default function DashboardPage() {
                       backgroundColor: acc.color ? `${acc.color}33` : "var(--color-surface-container-high)",
                     }}
                   >
-                    <MaterialIcon
-                      name={(acc.icon as string) || "account_balance"}
+                    <AccountIcon
+                      icon={acc.icon}
                       className="text-primary"
+                      imageClassName="h-6 w-6 rounded object-contain"
                     />
                   </div>
                   <div>

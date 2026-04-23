@@ -22,6 +22,7 @@ type AuthContextValue = {
     password: string,
     fullName: string,
     currency?: string,
+    country?: string,
   ) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -87,8 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signup = useCallback(
-    async (email: string, password: string, fullName: string, currency?: string) => {
-      const tokens = await authApi.signup({ email, password, fullName, currency });
+    async (email: string, password: string, fullName: string, currency?: string, country?: string) => {
+      const tokens = await authApi.signup({ email, password, fullName, currency, country });
       persistSession(tokens);
     },
     [persistSession],

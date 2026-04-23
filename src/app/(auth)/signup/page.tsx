@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 import { MaterialIcon } from "@/components/material-icon";
 import { useAuth } from "@/contexts/auth-context";
-
-const CURRENCIES = ["PKR", "USD", "EUR", "GBP", "AED", "SAR"] as const;
+import { referenceDataApi, type CountryOption } from "@/lib/api/reference-data.api";
 
 export default function SignupPage() {
   const { signup } = useAuth();
@@ -15,16 +14,39 @@ export default function SignupPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [country, setCountry] = useState<string>("PK");
+  const [countries, setCountries] = useState<CountryOption[]>([]);
   const [currency, setCurrency] = useState<string>("PKR");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    referenceDataApi
+      .getCountries()
+      .then((data) => {
+        if (mounted) setCountries(data);
+      })
+      .catch(() => {
+        if (mounted) setCountries([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const countryCurrencies = useMemo(() => {
+    const selected = countries.find((c) => c.code === country);
+    if (!selected?.currencies?.length) return [currency];
+    return selected.currencies;
+  }, [countries, country, currency]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setPending(true);
     try {
-      await signup(email.trim(), password, fullName.trim(), currency);
+      await signup(email.trim(), password, fullName.trim(), currency, country);
       router.replace("/dashboard");
     } catch {
       setError("Could not create account. Email may already be in use.");
@@ -134,6 +156,33 @@ export default function SignupPage() {
               </div>
             </div>
             <div className="space-y-1.5">
+              <label className="px-1 text-sm font-semibold text-on-surface-variant" htmlFor="country">
+                Country
+              </label>
+              <select
+                id="country"
+                value={country}
+                onChange={(e) => {
+                  const nextCountry = e.target.value;
+                  setCountry(nextCountry);
+                  const selected = countries.find((c) => c.code === nextCountry);
+                  if (!selected?.currencies?.length) return;
+                  if (!selected.currencies.includes(currency)) setCurrency(selected.currencies[0]);
+                }}
+                className="block w-full rounded-xl border-none bg-surface-container-lowest py-3.5 px-4 font-medium text-on-surface ring-1 ring-outline-variant/20 focus:ring-2 focus:ring-primary/40"
+              >
+                {countries.length ? (
+                  countries.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.name} ({c.code})
+                    </option>
+                  ))
+                ) : (
+                  <option value={country}>{country}</option>
+                )}
+              </select>
+            </div>
+            <div className="space-y-1.5">
               <label className="px-1 text-sm font-semibold text-on-surface-variant" htmlFor="currency">
                 Default currency
               </label>
@@ -143,7 +192,7 @@ export default function SignupPage() {
                 onChange={(e) => setCurrency(e.target.value)}
                 className="block w-full rounded-xl border-none bg-surface-container-lowest py-3.5 px-4 font-medium text-on-surface ring-1 ring-outline-variant/20 focus:ring-2 focus:ring-primary/40"
               >
-                {CURRENCIES.map((c) => (
+                {countryCurrencies.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
