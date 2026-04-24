@@ -60,6 +60,86 @@ export function TransactionDetailModal({ open, onClose, transaction: seed }: Pro
 
   const tx = fresh ?? seed;
   const cur = tx.currency || currency;
+  const amountLabel =
+    tx.type === "transfer"
+      ? formatMoney(tx.amount, cur)
+      : formatMoneySigned(tx.amount, cur, tx.type);
+  const dateLabel = dayjs(tx.date).format("dddd, MMM D, YYYY");
+  const typeLabel = tx.type.toUpperCase();
+
+  const handlePrint = () => {
+    if (typeof window === "undefined") return;
+    const popup = window.open("", "_blank", "width=780,height=900");
+    if (!popup) return;
+
+    const safe = (value: string) =>
+      value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    const safeAttr = (value: string) =>
+      safe(value).replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+
+    const imagesHtml = urls.length
+      ? `<div class="images">
+          <div class="images-title">Receipts & photos</div>
+          <div class="images-grid">
+            ${urls
+              .map(
+                (src) =>
+                  `<img src="${safeAttr(src)}" alt="Attachment" referrerpolicy="no-referrer" />`,
+              )
+              .join("")}
+          </div>
+        </div>`
+      : "";
+
+    const printHtml = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Transaction Detail</title>
+    <style>
+      body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 28px; color: #1b1b1f; }
+      h1 { margin: 0 0 6px; font-size: 22px; }
+      .muted { color: #5f6368; margin-bottom: 18px; }
+      .amount { font-size: 28px; font-weight: 800; margin: 0 0 6px; }
+      .card { border: 1px solid #dde3de; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+      .row { display: flex; justify-content: space-between; gap: 14px; margin: 8px 0; }
+      .key { color: #5f6368; font-weight: 600; }
+      .val { text-align: right; font-weight: 600; white-space: pre-wrap; }
+      .images { margin: 14px 0; border: 1px solid #dde3de; border-radius: 12px; padding: 12px; }
+      .images-title { margin-bottom: 10px; color: #5f6368; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+      .images-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+      .images-grid img { width: 100%; border-radius: 10px; border: 1px solid #eef1ed; object-fit: cover; aspect-ratio: 1 / 1; }
+      .footer { margin-top: 18px; color: #5f6368; font-size: 12px; }
+      @media print { .images-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    </style>
+  </head>
+  <body>
+    <h1>HysabKytab - Transaction Detail</h1>
+    <div class="muted">Generated on ${safe(dayjs().format("MMM D, YYYY h:mm A"))}</div>
+    <p class="muted">${safe(typeLabel)}</p>
+    <p class="amount">${safe(amountLabel)}</p>
+    <p class="muted">${safe(dateLabel)}</p>
+    <div class="card">
+      <div class="row"><div class="key">Account</div><div class="val">${safe(tx.account?.name ?? "—")}</div></div>
+      <div class="row"><div class="key">Category</div><div class="val">${safe(tx.category?.name ?? "—")}</div></div>
+      <div class="row"><div class="key">Transfer to</div><div class="val">${safe(tx.transferToAccount?.name ?? "—")}</div></div>
+      <div class="row"><div class="key">Note</div><div class="val">${safe(tx.note || "—")}</div></div>
+    </div>
+    ${imagesHtml}
+    <div class="footer">Currency: ${safe(cur)}</div>
+  </body>
+</html>`;
+    popup.document.open();
+    popup.document.write(printHtml);
+    popup.document.close();
+    popup.focus();
+    window.setTimeout(() => {
+      popup.print();
+    }, 250);
+  };
 
   return (
     <>
@@ -87,6 +167,14 @@ export function TransactionDetailModal({ open, onClose, transaction: seed }: Pro
             ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-surface-container-low px-3 py-2 text-sm font-bold text-on-surface hover:bg-surface-container-high"
+            >
+              <MaterialIcon name="print" className="text-lg" />
+              Print
+            </button>
             <Link
               href={`/transactions/${tx.id}/edit`}
               onClick={onClose}
@@ -108,7 +196,7 @@ export function TransactionDetailModal({ open, onClose, transaction: seed }: Pro
         <div className="max-h-[calc(92vh-5rem)] overflow-y-auto p-5">
           <div className="mb-5 text-center">
             <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
-              {tx.type}
+              {typeLabel}
             </p>
             <p
               className={`mt-1 text-3xl font-black tracking-tight ${
@@ -119,12 +207,10 @@ export function TransactionDetailModal({ open, onClose, transaction: seed }: Pro
                     : "text-on-surface"
               }`}
             >
-              {tx.type === "transfer"
-                ? formatMoney(tx.amount, cur)
-                : formatMoneySigned(tx.amount, cur, tx.type)}
+              {amountLabel}
             </p>
             <p className="mt-2 text-sm text-on-surface-variant">
-              {dayjs(tx.date).format("dddd, MMM D, YYYY")}
+              {dateLabel}
             </p>
           </div>
 
