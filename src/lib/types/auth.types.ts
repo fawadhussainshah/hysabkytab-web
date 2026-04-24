@@ -5,6 +5,9 @@ export interface User {
   currency: string;
   country?: string;
   avatarUrl?: string;
+  notificationInAppEnabled?: boolean;
+  notificationPushEnabled?: boolean;
+  notificationTransactionEnabled?: boolean;
 }
 
 export interface AuthTokens {

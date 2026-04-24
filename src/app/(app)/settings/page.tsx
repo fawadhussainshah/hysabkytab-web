@@ -40,6 +40,15 @@ export default function SettingsPage() {
   const [avatarKey, setAvatarKey] = useState(user?.avatarUrl ?? "");
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [notificationInAppEnabled, setNotificationInAppEnabled] = useState(
+    user?.notificationInAppEnabled ?? true,
+  );
+  const [notificationPushEnabled, setNotificationPushEnabled] = useState(
+    user?.notificationPushEnabled ?? true,
+  );
+  const [notificationTransactionEnabled, setNotificationTransactionEnabled] = useState(
+    user?.notificationTransactionEnabled ?? true,
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -67,6 +76,9 @@ export default function SettingsPage() {
         currency,
         country,
         avatarUrl: avatarKey || "",
+        notificationInAppEnabled,
+        notificationPushEnabled,
+        notificationTransactionEnabled,
       }),
     onSuccess: (updated) => {
       setUserLocal(updated);
@@ -264,6 +276,41 @@ export default function SettingsPage() {
               {profileMut.isPending ? "Saving…" : "Save profile"}
             </button>
           </form>
+        </section>
+
+        <section className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-8 shadow-sm">
+          <h3 className="mb-2 flex items-center gap-2 text-lg font-bold text-on-surface">
+            <MaterialIcon name="notifications" /> Notifications
+          </h3>
+          <p className="mb-6 text-sm text-on-surface-variant">
+            Control which alerts appear in your in-app inbox and mobile push.
+          </p>
+          <div className="space-y-3">
+            <label className="flex items-center justify-between rounded-xl bg-surface-container-low p-4">
+              <span className="text-sm font-semibold text-on-surface">In-app notifications</span>
+              <input
+                type="checkbox"
+                checked={notificationInAppEnabled}
+                onChange={(e) => setNotificationInAppEnabled(e.target.checked)}
+              />
+            </label>
+            <label className="flex items-center justify-between rounded-xl bg-surface-container-low p-4">
+              <span className="text-sm font-semibold text-on-surface">Push notifications (mobile)</span>
+              <input
+                type="checkbox"
+                checked={notificationPushEnabled}
+                onChange={(e) => setNotificationPushEnabled(e.target.checked)}
+              />
+            </label>
+            <label className="flex items-center justify-between rounded-xl bg-surface-container-low p-4">
+              <span className="text-sm font-semibold text-on-surface">Transaction alerts</span>
+              <input
+                type="checkbox"
+                checked={notificationTransactionEnabled}
+                onChange={(e) => setNotificationTransactionEnabled(e.target.checked)}
+              />
+            </label>
+          </div>
         </section>
 
         <section className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm">
