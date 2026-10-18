@@ -10,7 +10,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { notificationsApi } from "@/lib/api/notifications.api";
 import { NotificationsPanel } from "@/components/notifications-panel";
 
-export function AppHeader() {
+export function AppHeader({ onMenu }: { onMenu?: () => void }) {
   const { user } = useAuth();
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -31,8 +31,16 @@ export function AppHeader() {
   );
 
   return (
-    <header className="fixed right-0 top-0 z-40 flex h-16 w-[calc(100%-18rem)] items-center justify-between bg-white/80 px-8 backdrop-blur-md">
-      <div className="flex w-1/3 max-w-sm items-center gap-4">
+    <header className="fixed right-0 top-0 z-40 flex h-16 w-full items-center justify-between gap-3 bg-white/80 px-4 backdrop-blur-md sm:px-6 lg:w-[calc(100%-18rem)] lg:px-8">
+      <div className="flex min-w-0 flex-1 items-center gap-3 lg:w-1/3 lg:max-w-sm lg:flex-none">
+        <button
+          type="button"
+          onClick={onMenu}
+          aria-label="Open menu"
+          className="-ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-low lg:hidden"
+        >
+          <MaterialIcon name="menu" />
+        </button>
         <div className="relative w-full">
           <MaterialIcon
             name="search"
@@ -48,7 +56,7 @@ export function AppHeader() {
           />
         </div>
       </div>
-      <div className="flex items-center gap-6">
+      <div className="flex shrink-0 items-center gap-4 lg:gap-6">
         <div className="relative">
           <button
             type="button"
@@ -62,24 +70,24 @@ export function AppHeader() {
             ) : null}
           </button>
           {showNotifications ? (
-            <div className="absolute right-0 top-10 z-50">
+            <div className="fixed right-2 top-16 z-50 w-[calc(100vw-1rem)] max-w-sm lg:absolute lg:right-0 lg:top-10 lg:w-auto lg:max-w-none">
               <NotificationsPanel />
             </div>
           ) : null}
         </div>
         <button
           type="button"
-          className="text-on-surface-variant transition-colors hover:text-primary"
+          className="hidden text-on-surface-variant transition-colors hover:text-primary sm:block"
           aria-label="Help"
         >
           <MaterialIcon name="help_outline" />
         </button>
         <Link
           href="/settings"
-          className="flex items-center gap-3 border-l border-outline-variant/20 pl-4 transition hover:opacity-90"
+          className="flex items-center gap-3 transition hover:opacity-90 lg:border-l lg:border-outline-variant/20 lg:pl-4"
           title="Profile & profile photo"
         >
-          <div className="text-right">
+          <div className="hidden text-right sm:block">
             <p className="text-xs font-bold text-on-surface">{user?.fullName ?? "—"}</p>
             <p className="text-[10px] text-on-surface-variant">{user?.currency ?? ""}</p>
           </div>

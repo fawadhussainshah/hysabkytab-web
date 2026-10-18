@@ -19,6 +19,8 @@ export interface Transaction {
   attachmentKeys?: string[] | null;
   transferToAccountId?: string;
   transferToAccount?: Account;
+  /** sms = captured from a bank SMS by Hadi, hadi = entered via Hadi (WhatsApp/chat), manual = typed in this app. */
+  source?: "sms" | "hadi" | "manual";
   createdAt: string;
   updatedAt: string;
 }

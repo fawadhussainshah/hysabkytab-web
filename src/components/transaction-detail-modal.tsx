@@ -1,5 +1,6 @@
 "use client";
 
+import { SourceTag } from "@/components/source-tag";
 import { useCallback, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
@@ -18,6 +19,8 @@ type Props = {
   /** Row from the list (shown immediately); full record is refetched by id for attachments and relations. */
   transaction: Transaction | null;
 };
+
+const SOURCE_LABELS = { sms: "Bank SMS (via Hadi)", hadi: "Hadi (WhatsApp / chat)", manual: "Entered manually in the app" } as const;
 
 export function TransactionDetailModal({ open, onClose, transaction: seed }: Props) {
   const { user } = useAuth();
@@ -127,6 +130,7 @@ export function TransactionDetailModal({ open, onClose, transaction: seed }: Pro
       <div class="row"><div class="key">Category</div><div class="val">${safe(tx.category?.name ?? "—")}</div></div>
       <div class="row"><div class="key">Transfer to</div><div class="val">${safe(tx.transferToAccount?.name ?? "—")}</div></div>
       <div class="row"><div class="key">Note</div><div class="val">${safe(tx.note || "—")}</div></div>
+      <div class="row"><div class="key">Source</div><div class="val">${safe(SOURCE_LABELS[tx.source ?? "manual"])}</div></div>
     </div>
     ${imagesHtml}
     <div class="footer">Currency: ${safe(cur)}</div>
@@ -275,6 +279,10 @@ export function TransactionDetailModal({ open, onClose, transaction: seed }: Pro
             <div className="flex justify-between gap-4 rounded-xl bg-surface-container-low px-4 py-3">
               <dt className="font-semibold text-on-surface-variant">Note</dt>
               <dd className="max-w-[60%] text-right font-medium text-on-surface">{tx.note || "—"}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-xl bg-surface-container-low px-4 py-3">
+              <dt className="font-semibold text-on-surface-variant">Source</dt>
+              <dd><SourceTag source={tx.source} /></dd>
             </div>
           </dl>
         </div>

@@ -15,6 +15,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { formatMoney, formatMoneySigned } from "@/lib/format";
 import { getTransactionAttachmentKeys } from "@/lib/utils/transaction-attachments";
 import { TransactionAttachmentsModal } from "@/components/transaction-attachments-modal";
+import { SourceTag } from "@/components/source-tag";
+import { TransactionCard } from "@/components/transaction-card";
 import { TransactionDetailModal } from "@/components/transaction-detail-modal";
 import type { AiSearchResult, ExportPdfPayload, Transaction } from "@/lib/types/transaction.types";
 
@@ -25,6 +27,44 @@ const SORT_OPTIONS = {
   amount_asc: { label: "Lowest amount", sortBy: "amount", sortOrder: "ASC" },
 } as const;
 type SortKey = keyof typeof SORT_OPTIONS;
+
+const DATE_PRESETS = {
+  all: "All time",
+  today: "Today",
+  week: "This week",
+  month: "This month",
+  lastMonth: "Last month",
+  last30: "Last 30 days",
+  year: "This year",
+  custom: "Custom range…",
+} as const;
+type DatePreset = keyof typeof DATE_PRESETS;
+
+/** Inclusive YYYY-MM-DD bounds for a preset (undefined = open-ended). */
+function dateRange(preset: DatePreset, from: string, to: string): { startDate?: string; endDate?: string } {
+  const f = (d: dayjs.Dayjs) => d.format("YYYY-MM-DD");
+  const now = dayjs();
+  switch (preset) {
+    case "today":
+      return { startDate: f(now), endDate: f(now) };
+    case "week":
+      return { startDate: f(now.startOf("week")), endDate: f(now) };
+    case "month":
+      return { startDate: f(now.startOf("month")), endDate: f(now) };
+    case "lastMonth": {
+      const m = now.subtract(1, "month");
+      return { startDate: f(m.startOf("month")), endDate: f(m.endOf("month")) };
+    }
+    case "last30":
+      return { startDate: f(now.subtract(29, "day")), endDate: f(now) };
+    case "year":
+      return { startDate: f(now.startOf("year")), endDate: f(now) };
+    case "custom":
+      return { startDate: from || undefined, endDate: to || undefined };
+    default:
+      return {};
+  }
+}
 
 function TransactionsContent() {
   const { user } = useAuth();
@@ -37,6 +77,16 @@ function TransactionsContent() {
   const [accountId, setAccountId] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [sort, setSort] = useState<SortKey>("date_desc");
+  const [datePreset, setDatePreset] = useState<DatePreset>("all");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const { startDate, endDate } = dateRange(datePreset, customFrom, customTo);
+  const dateLabel =
+    datePreset === "custom"
+      ? [customFrom && `from ${customFrom}`, customTo && `to ${customTo}`].filter(Boolean).join(" ") || undefined
+      : datePreset === "all"
+        ? undefined
+        : DATE_PRESETS[datePreset];
   const [attachmentsFor, setAttachmentsFor] = useState<{ id: string; keys: string[] } | null>(null);
   const [detailTx, setDetailTx] = useState<Transaction | null>(null);
 
@@ -60,12 +110,14 @@ function TransactionsContent() {
   const categoryName = categoryOptions.find((c) => c.id === categoryId)?.name;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["transactions", "list", typeFilter, accountId, categoryId, sort],
+    queryKey: ["transactions", "list", typeFilter, accountId, categoryId, sort, startDate, endDate],
     queryFn: () =>
       transactionsApi.getAll({
         type: typeFilter || undefined,
         accountId: accountId || undefined,
         categoryId: categoryId || undefined,
+        startDate,
+        endDate,
         page: 1,
         limit: 50,
         sortBy: SORT_OPTIONS[sort].sortBy,
@@ -108,6 +160,7 @@ function TransactionsContent() {
         typeFilter && `Type: ${typeFilter}`,
         accountName && `Account: ${accountName}`,
         categoryName && `Category: ${categoryName}`,
+        dateLabel && `Date: ${dateLabel}`,
       ].filter(Boolean);
       // What is on screen: search results / text-filtered rows go by id; the plain list exports every match, not just the first page.
       const payload: ExportPdfPayload =
@@ -121,6 +174,8 @@ function TransactionsContent() {
               type: typeFilter || undefined,
               accountId: accountId || undefined,
               categoryId: categoryId || undefined,
+              startDate,
+              endDate,
               title: "Transactions",
               subtitle: filters.join(" · ") || undefined,
             };
@@ -146,7 +201,9 @@ function TransactionsContent() {
           (t) =>
             (!typeFilter || t.type === typeFilter) &&
             (!accountId || t.accountId === accountId || t.transferToAccountId === accountId) &&
-            (!categoryName || t.category?.name.toLowerCase() === categoryName.toLowerCase()),
+            (!categoryName || t.category?.name.toLowerCase() === categoryName.toLowerCase()) &&
+            (!startDate || t.date >= startDate) &&
+            (!endDate || t.date <= endDate),
         )
         .sort((a, b) => {
           const d =
@@ -177,9 +234,9 @@ function TransactionsContent() {
 
   return (
     <>
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4 lg:mb-8">
         <div>
-          <h2 className="text-3xl font-black tracking-tight text-on-surface">Transactions</h2>
+          <h2 className="text-2xl font-black tracking-tight text-on-surface sm:text-3xl">Transactions</h2>
           <p className="mt-1 text-on-surface-variant">All movements across your accounts.</p>
         </div>
         <Link
@@ -254,11 +311,11 @@ function TransactionsContent() {
         </div>
       )}
 
-      <div className="mb-6 flex flex-wrap gap-3">
+      <div className="mb-6 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3">
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter((e.target.value || "") as TransactionType | "")}
-          className="rounded-lg bg-surface-container-low px-4 py-2 text-sm font-medium text-on-surface"
+          className="w-full min-w-0 rounded-lg bg-surface-container-low px-3 py-2 text-sm font-medium text-on-surface sm:w-auto sm:px-4"
         >
           <option value="">All types</option>
           <option value="expense">Expense</option>
@@ -268,7 +325,7 @@ function TransactionsContent() {
         <select
           value={accountId}
           onChange={(e) => setAccountId(e.target.value)}
-          className="rounded-lg bg-surface-container-low px-4 py-2 text-sm font-medium text-on-surface"
+          className="w-full min-w-0 rounded-lg bg-surface-container-low px-3 py-2 text-sm font-medium text-on-surface sm:w-auto sm:px-4"
         >
           <option value="">All accounts</option>
           {(accounts ?? []).map((a) => (
@@ -278,9 +335,42 @@ function TransactionsContent() {
           ))}
         </select>
         <select
+          value={datePreset}
+          onChange={(e) => setDatePreset(e.target.value as DatePreset)}
+          className="w-full min-w-0 rounded-lg bg-surface-container-low px-3 py-2 text-sm font-medium text-on-surface sm:w-auto sm:px-4"
+          aria-label="Filter by date"
+        >
+          {(Object.keys(DATE_PRESETS) as DatePreset[]).map((k) => (
+            <option key={k} value={k}>
+              {k === "all" ? "Date: All time" : DATE_PRESETS[k]}
+            </option>
+          ))}
+        </select>
+        {datePreset === "custom" && (
+          <div className="col-span-2 flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <input
+              type="date"
+              value={customFrom}
+              max={customTo || undefined}
+              onChange={(e) => setCustomFrom(e.target.value)}
+              aria-label="From date"
+              className="min-w-0 flex-1 rounded-lg bg-surface-container-low px-3 py-2 text-sm font-medium text-on-surface sm:flex-none"
+            />
+            <span className="text-sm text-on-surface-variant">to</span>
+            <input
+              type="date"
+              value={customTo}
+              min={customFrom || undefined}
+              onChange={(e) => setCustomTo(e.target.value)}
+              aria-label="To date"
+              className="min-w-0 flex-1 rounded-lg bg-surface-container-low px-3 py-2 text-sm font-medium text-on-surface sm:flex-none"
+            />
+          </div>
+        )}
+        <select
           value={categoryId}
           onChange={(e) => setCategoryId(e.target.value)}
-          className="rounded-lg bg-surface-container-low px-4 py-2 text-sm font-medium text-on-surface"
+          className="w-full min-w-0 rounded-lg bg-surface-container-low px-3 py-2 text-sm font-medium text-on-surface sm:w-auto sm:px-4"
           aria-label="Filter by category"
         >
           <option value="">All categories</option>
@@ -293,7 +383,7 @@ function TransactionsContent() {
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as SortKey)}
-          className="rounded-lg bg-surface-container-low px-4 py-2 text-sm font-medium text-on-surface"
+          className="w-full min-w-0 rounded-lg bg-surface-container-low px-3 py-2 text-sm font-medium text-on-surface sm:w-auto sm:px-4"
           aria-label="Sort transactions"
         >
           {(Object.keys(SORT_OPTIONS) as SortKey[]).map((k) => (
@@ -306,7 +396,7 @@ function TransactionsContent() {
           type="button"
           onClick={() => exportMut.mutate()}
           disabled={exportMut.isPending || rows.length === 0}
-          className="ml-auto inline-flex items-center gap-2 rounded-lg bg-surface-container-low px-4 py-2 text-sm font-semibold text-primary hover:bg-surface-container disabled:opacity-60"
+          className="col-span-2 inline-flex items-center justify-center gap-2 sm:ml-auto sm:justify-start rounded-lg bg-surface-container-low px-4 py-2 text-sm font-semibold text-primary hover:bg-surface-container disabled:opacity-60"
         >
           <MaterialIcon name="download" className="text-lg" />
           {exportMut.isPending ? "Preparing PDF…" : "Export PDF"}
@@ -320,7 +410,51 @@ function TransactionsContent() {
         {isLoading ? (
           <p className="p-8 text-center text-on-surface-variant">Loading…</p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="divide-y divide-outline-variant/10 md:hidden">
+            {rows.map((row) => {
+              const attKeys = getTransactionAttachmentKeys(row);
+              return (
+                <TransactionCard
+                  key={row.id}
+                  row={row}
+                  currency={currency}
+                  onOpen={() => setDetailTx(row)}
+                  actions={
+                    <>
+                      {attKeys.length > 0 && (
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 text-primary"
+                          onClick={() => setAttachmentsFor({ id: row.id, keys: attKeys })}
+                        >
+                          <MaterialIcon name="photo_library" className="text-base" />
+                          {attKeys.length}
+                        </button>
+                      )}
+                      <Link href={`/transactions/${row.id}/edit`} className="text-primary">
+                        Edit
+                      </Link>
+                      <button
+                        type="button"
+                        className="text-error"
+                        onClick={() => {
+                          if (!confirm("Delete this transaction?")) return;
+                          deleteMut.mutate(row.id);
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </>
+                  }
+                />
+              );
+            })}
+            {rows.length === 0 && (
+              <p className="p-8 text-center text-sm text-on-surface-variant">No transactions found.</p>
+            )}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-surface-container-low">
@@ -381,17 +515,20 @@ function TransactionsContent() {
                         </span>
                       </div>
                     </td>
-                    <td className="max-w-xs truncate px-6 py-4 text-sm text-on-surface-variant">
-                      {row.note || "—"}
+                    <td className="max-w-xs px-6 py-4 text-sm text-on-surface-variant">
+                      <div className="flex items-center gap-2">
+                        <span className="min-w-0 truncate">{row.note || "—"}</span>
+                        <SourceTag source={row.source} />
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-on-surface-variant">
+                    <td className="min-w-[9rem] px-6 py-4 text-sm text-on-surface-variant">
                       {row.account?.name ?? "—"}
                     </td>
-                    <td className="px-6 py-4 text-center text-sm text-on-surface-variant">
+                    <td className="whitespace-nowrap px-6 py-4 text-center text-sm text-on-surface-variant">
                       {dayjs(row.date).format("MMM D, YYYY")}
                     </td>
                     <td
-                      className={`px-6 py-4 text-right text-sm font-black ${
+                      className={`whitespace-nowrap px-6 py-4 text-right text-sm font-black ${
                         row.type === "income"
                           ? "text-secondary"
                           : row.type === "expense"
@@ -464,6 +601,7 @@ function TransactionsContent() {
               <p className="p-8 text-center text-sm text-on-surface-variant">No transactions found.</p>
             )}
           </div>
+          </>
         )}
       </div>
 

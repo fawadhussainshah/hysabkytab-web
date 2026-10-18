@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
+import { TransactionCard } from "@/components/transaction-card";
 import Link from "next/link";
 import { useState } from "react";
 import { AccountIcon } from "@/components/account-icon";
@@ -70,9 +71,9 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div className="mb-8 flex items-end justify-between">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4 lg:mb-8">
         <div>
-          <h2 className="text-3xl font-black tracking-tight text-on-surface">Dashboard</h2>
+          <h2 className="text-2xl font-black tracking-tight text-on-surface sm:text-3xl">Dashboard</h2>
           <p className="mt-1 text-on-surface-variant">
             Welcome back. Your financial health is{" "}
             <span className="font-bold text-secondary">{health}</span>.
@@ -221,7 +222,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm lg:col-span-2">
-          <div className="flex items-center justify-between border-b border-outline-variant/10 p-8">
+          <div className="flex items-center justify-between border-b border-outline-variant/10 p-4 sm:p-8">
             <h3 className="text-lg font-bold text-on-surface">Recent transactions</h3>
             <Link
               href="/transactions"
@@ -230,7 +231,12 @@ export default function DashboardPage() {
               View all
             </Link>
           </div>
-          <div className="overflow-x-auto">
+          <div className="divide-y divide-outline-variant/10 md:hidden">
+            {(txPage?.items ?? []).map((row) => (
+              <TransactionCard key={row.id} row={row} currency={currency} onOpen={() => setDetailTx(row)} />
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-surface-container-low">

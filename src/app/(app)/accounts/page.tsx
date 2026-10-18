@@ -48,7 +48,7 @@ export default function AccountsPage() {
             >
               <Link href={`/accounts/${a.id}`} className="flex flex-1 items-center gap-4">
                 <div
-                  className="flex h-12 w-12 items-center justify-center rounded-full"
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
                   style={{
                     backgroundColor: a.color ? `${a.color}33` : "var(--color-surface-container-high)",
                   }}

@@ -153,7 +153,7 @@ export default function NewTransactionPage() {
 
       <div className="overflow-hidden rounded-3xl border border-outline-variant/10 bg-surface-container-lowest shadow-2xl">
         <form onSubmit={onSubmit} className="grid grid-cols-1 lg:grid-cols-2">
-          <div className="space-y-8 p-12">
+          <div className="space-y-8 p-5 sm:p-8 md:p-12">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <h2 className="text-3xl font-black tracking-tighter text-on-surface">Add transaction</h2>
               <div className="flex rounded-xl bg-surface-container-low p-1">

@@ -18,15 +18,29 @@ const nav = [
   { href: "/settings", label: "Settings & profile", icon: "settings" },
 ] as const;
 
-export function AppSidebar() {
+export function AppSidebar({ open = false, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const { user } = useAuth();
 
   return (
-    <aside className="fixed left-0 top-0 z-50 flex h-screen w-72 flex-col bg-[#f5f2ff] py-8 shadow-[4px_0_24px_-4px_rgba(1,45,29,0.06)]">
+    <>
+    {open && (
+      <button
+        type="button"
+        aria-label="Close menu"
+        onClick={onClose}
+        className="fixed inset-0 z-50 bg-black/40 lg:hidden"
+      />
+    )}
+    <aside
+      className={`fixed left-0 top-0 z-50 flex h-dvh w-72 max-w-[85vw] flex-col overflow-y-auto bg-[#f5f2ff] py-8 shadow-[4px_0_24px_-4px_rgba(1,45,29,0.06)] transition-transform duration-200 lg:h-screen lg:max-w-none lg:translate-x-0 ${
+        open ? "translate-x-0" : "-translate-x-full"
+      }`}
+    >
       <div className="mb-10 px-8">
         <Link
           href="/dashboard"
+          onClick={onClose}
           className="group flex items-start gap-3 rounded-xl outline-none ring-primary/0 transition-shadow focus-visible:ring-2 focus-visible:ring-primary/30"
         >
           <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/80 p-1.5 shadow-sm ring-1 ring-primary/10 transition group-hover:bg-white group-hover:shadow-md">
@@ -49,6 +63,7 @@ export function AppSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={
                 active
                   ? "ml-4 flex items-center gap-4 rounded-l-xl bg-white py-3 pl-4 pr-4 font-semibold text-primary shadow-sm transition-all duration-200"
@@ -64,6 +79,7 @@ export function AppSidebar() {
       <div className="mt-8 px-6">
         <Link
           href="/transactions/new"
+          onClick={onClose}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container py-4 px-6 text-sm font-bold text-white shadow-[0_12px_24px_-8px_rgba(1,45,29,0.3)] transition-all hover:opacity-95 active:scale-[0.98]"
         >
           <MaterialIcon name="add_circle" className="text-lg" />
@@ -72,6 +88,7 @@ export function AppSidebar() {
         {user && (
           <Link
             href="/settings"
+            onClick={onClose}
             className="mt-6 flex items-center gap-3 rounded-xl border border-outline-variant/10 bg-surface-container-low px-2 py-3 transition hover:bg-surface-container-high/80"
           >
             <UserAvatar fullName={user.fullName} avatarKey={user.avatarUrl} size={32} />
@@ -84,5 +101,6 @@ export function AppSidebar() {
         )}
       </div>
     </aside>
+    </>
   );
 }
