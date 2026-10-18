@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -14,7 +15,7 @@ import { formatMoney, formatMoneySigned } from "@/lib/format";
 import { getTransactionAttachmentKeys } from "@/lib/utils/transaction-attachments";
 import { TransactionAttachmentsModal } from "@/components/transaction-attachments-modal";
 import { TransactionDetailModal } from "@/components/transaction-detail-modal";
-import type { Transaction } from "@/lib/types/transaction.types";
+import type { AiSearchResult, Transaction } from "@/lib/types/transaction.types";
 
 function TransactionsContent() {
   const { user } = useAuth();
@@ -46,7 +47,36 @@ function TransactionsContent() {
       }),
   });
 
+  const [aiQuery, setAiQuery] = useState("");
+  const [aiResult, setAiResult] = useState<AiSearchResult | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const aiMut = useMutation({
+    mutationFn: (query: string) => transactionsApi.aiSearch(query),
+    onSuccess: (res) => {
+      setAiResult(res);
+      setAiError(null);
+    },
+    onError: (err) => {
+      setAiResult(null);
+      setAiError(
+        isAxiosError(err) && err.response?.data?.message
+          ? String(err.response.data.message)
+          : "AI search failed. Please try again.",
+      );
+    },
+  });
+  const runAiSearch = () => {
+    const query = aiQuery.trim();
+    if (query && !aiMut.isPending) aiMut.mutate(query);
+  };
+  const clearAiSearch = () => {
+    setAiQuery("");
+    setAiResult(null);
+    setAiError(null);
+  };
+
   const rows = useMemo(() => {
+    if (aiResult) return aiResult.items;
     const items = data?.items ?? [];
     if (!q) return items;
     return items.filter((t) => {
@@ -54,7 +84,7 @@ function TransactionsContent() {
       const cat = (t.category?.name || "").toLowerCase();
       return note.includes(q) || cat.includes(q) || t.id.toLowerCase().includes(q);
     });
-  }, [data?.items, q]);
+  }, [data?.items, q, aiResult]);
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => transactionsApi.remove(id),
@@ -80,6 +110,70 @@ function TransactionsContent() {
           Add transaction
         </Link>
       </div>
+
+      <form
+        className="mb-4 flex flex-wrap items-center gap-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          runAiSearch();
+        }}
+      >
+        <label className="flex min-w-[260px] flex-1 items-center gap-3 rounded-xl bg-surface-container-low px-4 py-3">
+          <MaterialIcon name="auto_awesome" className="text-lg text-primary" />
+          <span className="text-xs font-black uppercase tracking-widest text-primary">AI search</span>
+          <input
+            value={aiQuery}
+            onChange={(e) => setAiQuery(e.target.value)}
+            maxLength={300}
+            placeholder='Try "pharmacy spending on Faysal card last month" or "over 10k this year"'
+            className="min-w-0 flex-1 bg-transparent text-sm text-on-surface outline-none placeholder:text-on-surface-variant/60"
+            aria-label="AI search"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={!aiQuery.trim() || aiMut.isPending}
+          className="rounded-xl bg-gradient-to-br from-primary to-primary-container px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/10 disabled:opacity-60"
+        >
+          {aiMut.isPending ? "Searching…" : "Search"}
+        </button>
+        {(aiResult || aiError) && (
+          <button
+            type="button"
+            onClick={clearAiSearch}
+            className="rounded-xl px-4 py-3 text-sm font-semibold text-on-surface-variant hover:bg-surface-container-low"
+          >
+            Clear
+          </button>
+        )}
+      </form>
+
+      {aiError && <p className="mb-4 text-sm font-medium text-error">{aiError}</p>}
+
+      {aiResult && (
+        <div className="mb-6 rounded-xl bg-surface-container-low p-4">
+          <p className="text-sm font-semibold text-on-surface">{aiResult.interpreted.summary}</p>
+          {aiResult.interpreted.chips.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {aiResult.interpreted.chips.map((c) => (
+                <span
+                  key={c}
+                  className="rounded-full bg-primary-container/40 px-3 py-1 text-xs font-bold text-primary"
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+          )}
+          <p className="mt-3 text-sm text-on-surface-variant">
+            {aiResult.meta.count} match{aiResult.meta.count === 1 ? "" : "es"}
+            {aiResult.meta.truncated ? ` (showing the latest ${aiResult.meta.shown})` : ""}
+            {aiResult.totals.expense > 0 && <> · Spent {formatMoney(aiResult.totals.expense, currency)}</>}
+            {aiResult.totals.income > 0 && <> · Received {formatMoney(aiResult.totals.income, currency)}</>}
+            {aiResult.totals.transfer > 0 && <> · Transferred {formatMoney(aiResult.totals.transfer, currency)}</>}
+          </p>
+        </div>
+      )}
 
       <div className="mb-6 flex flex-wrap gap-3">
         <select

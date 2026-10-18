@@ -1,4 +1,5 @@
 import type {
+  AiSearchResult,
   CreateTransactionPayload,
   PaginatedTransactions,
   Transaction,
@@ -20,6 +21,11 @@ export const transactionsApi = {
 
   update: (id: string, data: Partial<CreateTransactionPayload>) =>
     apiClient.patch<{ data: Transaction }>(`/transactions/${id}`, data).then(extractData),
+
+  aiSearch: (query: string) =>
+    apiClient
+      .post<{ data: AiSearchResult }>("/transactions/ai-search", { query }, { timeout: 40000 })
+      .then(extractData),
 
   remove: (id: string) => apiClient.delete(`/transactions/${id}`),
 };

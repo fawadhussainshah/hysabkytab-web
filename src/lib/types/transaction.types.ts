@@ -57,3 +57,10 @@ export interface PaginatedTransactions {
     totalPages: number;
   };
 }
+
+export interface AiSearchResult {
+  items: Transaction[];
+  meta: { count: number; shown: number; truncated: boolean };
+  totals: { expense: number; income: number; transfer: number };
+  interpreted: { summary: string; chips: string[] };
+}
