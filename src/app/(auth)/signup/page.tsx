@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectField } from "@/components/select-field";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -166,45 +167,36 @@ export default function SignupPage() {
               <label className="px-1 text-sm font-semibold text-on-surface-variant" htmlFor="country">
                 Country
               </label>
-              <select
+              <SelectField
                 id="country"
                 value={country}
-                onChange={(e) => {
-                  const nextCountry = e.target.value;
+                onChange={(nextCountry) => {
                   setCountry(nextCountry);
                   const selected = countries.find((c) => c.code === nextCountry);
                   if (!selected?.currencies?.length) return;
                   if (!selected.currencies.includes(currency)) setCurrency(selected.currencies[0]);
                 }}
+                searchPlaceholder="Search countries…"
                 className="block w-full rounded-xl border-none bg-surface-container-lowest py-3.5 px-4 font-medium text-on-surface ring-1 ring-outline-variant/20 focus:ring-2 focus:ring-primary/40"
-              >
-                {countries.length ? (
-                  countries.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.name} ({c.code})
-                    </option>
-                  ))
-                ) : (
-                  <option value={country}>{country}</option>
-                )}
-              </select>
+                options={
+                  countries.length
+                    ? countries.map((c) => ({ value: c.code, label: `${c.name} (${c.code})` }))
+                    : [{ value: country, label: country }]
+                }
+              />
             </div>
             <div className="space-y-1.5">
               <label className="px-1 text-sm font-semibold text-on-surface-variant" htmlFor="currency">
                 Default currency
               </label>
-              <select
+              <SelectField
                 id="currency"
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
+                onChange={setCurrency}
+                searchPlaceholder="Search currencies…"
                 className="block w-full rounded-xl border-none bg-surface-container-lowest py-3.5 px-4 font-medium text-on-surface ring-1 ring-outline-variant/20 focus:ring-2 focus:ring-primary/40"
-              >
-                {countryCurrencies.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+                options={countryCurrencies.map((c) => ({ value: c, label: c }))}
+              />
             </div>
             <button
               type="submit"

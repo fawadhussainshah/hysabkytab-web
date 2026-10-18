@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectField } from "@/components/select-field";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import Link from "next/link";
@@ -360,57 +361,44 @@ export default function EditTransactionPage() {
                 <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
                   Account
                 </label>
-                <select
+                <SelectField
                   required
                   value={accountId}
-                  onChange={(e) => setAccountId(e.target.value)}
+                  onChange={setAccountId}
+                  searchPlaceholder="Search accounts…"
                   className="w-full rounded-2xl border border-transparent bg-surface-container-low p-4 text-sm font-semibold text-on-surface transition-all focus:border-primary/20 focus:ring-2 focus:ring-primary/20"
-                >
-                  {(accounts ?? []).map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
+                  options={(accounts ?? []).map((a) => ({ value: a.id, label: a.name }))}
+                />
               </div>
               {type !== "transfer" ? (
                 <div className="space-y-2">
                   <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
                     Category
                   </label>
-                  <select
+                  <SelectField
                     value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
+                    onChange={setCategoryId}
+                    searchPlaceholder="Search categories…"
                     className="w-full rounded-2xl border border-transparent bg-surface-container-low p-4 text-sm font-semibold text-on-surface"
-                  >
-                    <option value="">Optional</option>
-                    {filteredCategories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                    options={[{ value: "", label: "Optional" }, ...filteredCategories.map((c) => ({ value: c.id, label: c.name }))]}
+                  />
                 </div>
               ) : (
                 <div className="space-y-2">
                   <label className="ml-1 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
                     To account
                   </label>
-                  <select
+                  <SelectField
                     required
                     value={transferToAccountId}
-                    onChange={(e) => setTransferToAccountId(e.target.value)}
+                    onChange={setTransferToAccountId}
+                    searchPlaceholder="Search accounts…"
                     className="w-full rounded-2xl border border-transparent bg-surface-container-low p-4 text-sm font-semibold text-on-surface"
-                  >
-                    <option value="">Select account</option>
-                    {(accounts ?? [])
-                      .filter((a) => a.id !== accountId)
-                      .map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.name}
-                        </option>
-                      ))}
-                  </select>
+                    options={[
+                      { value: "", label: "Select account" },
+                      ...(accounts ?? []).filter((a) => a.id !== accountId).map((a) => ({ value: a.id, label: a.name })),
+                    ]}
+                  />
                 </div>
               )}
             </div>

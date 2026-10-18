@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectField } from "@/components/select-field";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -94,18 +95,13 @@ export default function NewGoalPage() {
           </div>
           <div>
             <label className="text-sm font-semibold text-on-surface-variant">Linked account (optional)</label>
-            <select
+            <SelectField
               value={linkedAccountId}
-              onChange={(e) => setLinkedAccountId(e.target.value)}
+              onChange={setLinkedAccountId}
+              searchPlaceholder="Search accounts…"
               className="mt-1 w-full rounded-xl bg-surface-container-low px-4 py-3 text-sm"
-            >
-              <option value="">None</option>
-              {(accounts ?? []).map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
+              options={[{ value: "", label: "None" }, ...(accounts ?? []).map((a) => ({ value: a.id, label: a.name }))]}
+            />
           </div>
           <button
             type="submit"

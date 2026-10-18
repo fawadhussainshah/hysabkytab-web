@@ -42,6 +42,7 @@ export interface TransactionFilter {
   accountId?: string;
   categoryId?: string;
   type?: TransactionType;
+  source?: "sms" | "hadi" | "manual";
   startDate?: string;
   endDate?: string;
   page?: number;
@@ -72,6 +73,7 @@ export interface ExportPdfPayload {
   type?: TransactionType;
   accountId?: string;
   categoryId?: string;
+  source?: "sms" | "hadi" | "manual";
   startDate?: string;
   endDate?: string;
   title?: string;

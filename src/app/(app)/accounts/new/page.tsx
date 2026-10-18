@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectField } from "@/components/select-field";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -145,26 +146,21 @@ export default function NewAccountPage() {
               <label className="text-sm font-semibold text-on-surface-variant">
                 {institutionType === "bank" ? "Bank" : "Card network"}
               </label>
-              <select
+              <SelectField
                 value={selectedInstitution?.id || ""}
-                onChange={(e) => {
-                  const nextId = e.target.value;
+                onChange={(nextId) => {
                   setSelectedInstitutionId(nextId);
                   const selected = institutions.find((item) => item.id === nextId);
                   if (selected) setName(selected.name);
                 }}
+                searchPlaceholder="Search banks…"
                 className="mt-1 w-full rounded-xl bg-surface-container-low px-4 py-3 text-sm"
-              >
-                {!institutions.length ? (
-                  <option value="">No institutions found for selected country</option>
-                ) : (
-                  institutions.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))
-                )}
-              </select>
+                options={
+                  institutions.length
+                    ? institutions.map((item) => ({ value: item.id, label: item.name }))
+                    : [{ value: "", label: "No institutions found for selected country" }]
+                }
+              />
               {selectedInstitution && (
                 <div className="mt-2 flex items-center gap-2 rounded-xl border border-outline-variant/20 bg-surface-container-low px-3 py-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded bg-surface-container-high">

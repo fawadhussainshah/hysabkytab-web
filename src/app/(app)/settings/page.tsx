@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectField } from "@/components/select-field";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import Link from "next/link";
@@ -232,41 +233,32 @@ export default function SettingsPage() {
             </div>
             <div>
               <label className="text-sm font-semibold text-on-surface-variant">Country</label>
-              <select
+              <SelectField
                 value={country}
-                onChange={(e) => {
-                  const nextCountry = e.target.value;
+                onChange={(nextCountry) => {
                   setCountry(nextCountry);
                   const selected = countries.find((c) => c.code === nextCountry);
                   if (!selected?.currencies?.length) return;
                   if (!selected.currencies.includes(currency)) setCurrency(selected.currencies[0]);
                 }}
+                searchPlaceholder="Search countries…"
                 className="mt-1 w-full rounded-xl bg-surface-container-low px-4 py-3 text-sm"
-              >
-                {countries.length ? (
-                  countries.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.name} ({c.code})
-                    </option>
-                  ))
-                ) : (
-                  <option value={country}>{country}</option>
-                )}
-              </select>
+                options={
+                  countries.length
+                    ? countries.map((c) => ({ value: c.code, label: `${c.name} (${c.code})` }))
+                    : [{ value: country, label: country }]
+                }
+              />
             </div>
             <div>
               <label className="text-sm font-semibold text-on-surface-variant">Currency</label>
-              <select
+              <SelectField
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
+                onChange={setCurrency}
+                searchPlaceholder="Search currencies…"
                 className="mt-1 w-full rounded-xl bg-surface-container-low px-4 py-3 text-sm"
-              >
-                {availableCurrencies.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+                options={availableCurrencies.map((c) => ({ value: c, label: c }))}
+              />
             </div>
             <button
               type="submit"

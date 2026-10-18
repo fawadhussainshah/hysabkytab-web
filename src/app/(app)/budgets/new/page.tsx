@@ -1,5 +1,6 @@
 "use client";
 
+import { SelectField } from "@/components/select-field";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import Link from "next/link";
@@ -78,18 +79,13 @@ export default function NewBudgetPage() {
           </div>
           <div>
             <label className="text-sm font-semibold text-on-surface-variant">Category (optional)</label>
-            <select
+            <SelectField
               value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
+              onChange={setCategoryId}
+              searchPlaceholder="Search categories…"
               className="mt-1 w-full rounded-xl bg-surface-container-low px-4 py-3 text-sm"
-            >
-              <option value="">None</option>
-              {expenseCats.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              options={[{ value: "", label: "None" }, ...expenseCats.map((c) => ({ value: c.id, label: c.name }))]}
+            />
           </div>
           <div>
             <label className="text-sm font-semibold text-on-surface-variant">Amount</label>

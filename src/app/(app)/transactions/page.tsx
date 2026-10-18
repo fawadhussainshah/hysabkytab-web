@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { formatMoney, formatMoneySigned } from "@/lib/format";
 import { getTransactionAttachmentKeys } from "@/lib/utils/transaction-attachments";
 import { TransactionAttachmentsModal } from "@/components/transaction-attachments-modal";
+import { SelectField } from "@/components/select-field";
 import { SourceTag } from "@/components/source-tag";
 import { TransactionCard } from "@/components/transaction-card";
 import { TransactionDetailModal } from "@/components/transaction-detail-modal";
@@ -27,6 +28,11 @@ const SORT_OPTIONS = {
   amount_asc: { label: "Lowest amount", sortBy: "amount", sortOrder: "ASC" },
 } as const;
 type SortKey = keyof typeof SORT_OPTIONS;
+
+const FILTER_CLASS =
+  "w-full min-w-0 rounded-lg bg-surface-container-low px-3 py-2 text-sm font-medium text-on-surface sm:w-auto sm:px-4";
+
+type SourceFilter = "" | "sms" | "hadi" | "manual";
 
 const DATE_PRESETS = {
   all: "All time",
@@ -77,6 +83,7 @@ function TransactionsContent() {
   const [accountId, setAccountId] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [sort, setSort] = useState<SortKey>("date_desc");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("");
   const [datePreset, setDatePreset] = useState<DatePreset>("all");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -110,12 +117,13 @@ function TransactionsContent() {
   const categoryName = categoryOptions.find((c) => c.id === categoryId)?.name;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["transactions", "list", typeFilter, accountId, categoryId, sort, startDate, endDate],
+    queryKey: ["transactions", "list", typeFilter, accountId, categoryId, sort, startDate, endDate, sourceFilter],
     queryFn: () =>
       transactionsApi.getAll({
         type: typeFilter || undefined,
         accountId: accountId || undefined,
         categoryId: categoryId || undefined,
+        source: sourceFilter || undefined,
         startDate,
         endDate,
         page: 1,
@@ -161,6 +169,7 @@ function TransactionsContent() {
         accountName && `Account: ${accountName}`,
         categoryName && `Category: ${categoryName}`,
         dateLabel && `Date: ${dateLabel}`,
+        sourceFilter && `Source: ${sourceFilter.toUpperCase()}`,
       ].filter(Boolean);
       // What is on screen: search results / text-filtered rows go by id; the plain list exports every match, not just the first page.
       const payload: ExportPdfPayload =
@@ -174,6 +183,7 @@ function TransactionsContent() {
               type: typeFilter || undefined,
               accountId: accountId || undefined,
               categoryId: categoryId || undefined,
+              source: sourceFilter || undefined,
               startDate,
               endDate,
               title: "Transactions",
@@ -202,6 +212,7 @@ function TransactionsContent() {
             (!typeFilter || t.type === typeFilter) &&
             (!accountId || t.accountId === accountId || t.transferToAccountId === accountId) &&
             (!categoryName || t.category?.name.toLowerCase() === categoryName.toLowerCase()) &&
+            (!sourceFilter || (t.source ?? "manual") === sourceFilter) &&
             (!startDate || t.date >= startDate) &&
             (!endDate || t.date <= endDate),
         )
@@ -312,40 +323,36 @@ function TransactionsContent() {
       )}
 
       <div className="mb-6 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3">
-        <select
+        <SelectField
           value={typeFilter}
-          onChange={(e) => setTypeFilter((e.target.value || "") as TransactionType | "")}
-          className="w-full min-w-0 rounded-lg bg-surface-container-low px-3 py-2 text-sm font-medium text-on-surface sm:w-auto sm:px-4"
-        >
-          <option value="">All types</option>
-          <option value="expense">Expense</option>
-          <option value="income">Income</option>
-          <option value="transfer">Transfer</option>
-        </select>
-        <select
+          onChange={(v) => setTypeFilter((v || "") as TransactionType | "")}
+          ariaLabel="Filter by type"
+          className={FILTER_CLASS}
+          options={[
+            { value: "", label: "All types" },
+            { value: "expense", label: "Expense" },
+            { value: "income", label: "Income" },
+            { value: "transfer", label: "Transfer" },
+          ]}
+        />
+        <SelectField
           value={accountId}
-          onChange={(e) => setAccountId(e.target.value)}
-          className="w-full min-w-0 rounded-lg bg-surface-container-low px-3 py-2 text-sm font-medium text-on-surface sm:w-auto sm:px-4"
-        >
-          <option value="">All accounts</option>
-          {(accounts ?? []).map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-        </select>
-        <select
+          onChange={setAccountId}
+          ariaLabel="Filter by account"
+          className={FILTER_CLASS}
+          searchPlaceholder="Search accounts…"
+          options={[{ value: "", label: "All accounts" }, ...(accounts ?? []).map((a) => ({ value: a.id, label: a.name }))]}
+        />
+        <SelectField
           value={datePreset}
-          onChange={(e) => setDatePreset(e.target.value as DatePreset)}
-          className="w-full min-w-0 rounded-lg bg-surface-container-low px-3 py-2 text-sm font-medium text-on-surface sm:w-auto sm:px-4"
-          aria-label="Filter by date"
-        >
-          {(Object.keys(DATE_PRESETS) as DatePreset[]).map((k) => (
-            <option key={k} value={k}>
-              {k === "all" ? "Date: All time" : DATE_PRESETS[k]}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => setDatePreset(v as DatePreset)}
+          ariaLabel="Filter by date"
+          className={FILTER_CLASS}
+          options={(Object.keys(DATE_PRESETS) as DatePreset[]).map((k) => ({
+            value: k,
+            label: k === "all" ? "Date: All time" : DATE_PRESETS[k],
+          }))}
+        />
         {datePreset === "custom" && (
           <div className="col-span-2 flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <input
@@ -367,31 +374,33 @@ function TransactionsContent() {
             />
           </div>
         )}
-        <select
+        <SelectField
           value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
-          className="w-full min-w-0 rounded-lg bg-surface-container-low px-3 py-2 text-sm font-medium text-on-surface sm:w-auto sm:px-4"
-          aria-label="Filter by category"
-        >
-          <option value="">All categories</option>
-          {categoryOptions.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <select
+          onChange={setCategoryId}
+          ariaLabel="Filter by category"
+          className={FILTER_CLASS}
+          searchPlaceholder="Search categories…"
+          options={[{ value: "", label: "All categories" }, ...categoryOptions.map((c) => ({ value: c.id, label: c.name }))]}
+        />
+        <SelectField
+          value={sourceFilter}
+          onChange={(v) => setSourceFilter(v as SourceFilter)}
+          ariaLabel="Filter by source"
+          className={FILTER_CLASS}
+          options={[
+            { value: "", label: "All sources" },
+            { value: "sms", label: "SMS" },
+            { value: "hadi", label: "Hadi" },
+            { value: "manual", label: "Manual" },
+          ]}
+        />
+        <SelectField
           value={sort}
-          onChange={(e) => setSort(e.target.value as SortKey)}
-          className="w-full min-w-0 rounded-lg bg-surface-container-low px-3 py-2 text-sm font-medium text-on-surface sm:w-auto sm:px-4"
-          aria-label="Sort transactions"
-        >
-          {(Object.keys(SORT_OPTIONS) as SortKey[]).map((k) => (
-            <option key={k} value={k}>
-              Sort: {SORT_OPTIONS[k].label}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => setSort(v as SortKey)}
+          ariaLabel="Sort transactions"
+          className={FILTER_CLASS}
+          options={(Object.keys(SORT_OPTIONS) as SortKey[]).map((k) => ({ value: k, label: `Sort: ${SORT_OPTIONS[k].label}` }))}
+        />
         <button
           type="button"
           onClick={() => exportMut.mutate()}
