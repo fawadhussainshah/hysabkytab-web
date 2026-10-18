@@ -8,6 +8,7 @@ import { useSearchParams } from "next/navigation";
 import { useMemo, useState, Suspense } from "react";
 import { MaterialIcon } from "@/components/material-icon";
 import { accountsApi } from "@/lib/api/accounts.api";
+import { categoriesApi } from "@/lib/api/categories.api";
 import { transactionsApi } from "@/lib/api/transactions.api";
 import type { TransactionType } from "@/lib/types/transaction.types";
 import { useAuth } from "@/contexts/auth-context";
@@ -16,6 +17,14 @@ import { getTransactionAttachmentKeys } from "@/lib/utils/transaction-attachment
 import { TransactionAttachmentsModal } from "@/components/transaction-attachments-modal";
 import { TransactionDetailModal } from "@/components/transaction-detail-modal";
 import type { AiSearchResult, ExportPdfPayload, Transaction } from "@/lib/types/transaction.types";
+
+const SORT_OPTIONS = {
+  date_desc: { label: "Newest first", sortBy: "date", sortOrder: "DESC" },
+  date_asc: { label: "Oldest first", sortBy: "date", sortOrder: "ASC" },
+  amount_desc: { label: "Highest amount", sortBy: "amount", sortOrder: "DESC" },
+  amount_asc: { label: "Lowest amount", sortBy: "amount", sortOrder: "ASC" },
+} as const;
+type SortKey = keyof typeof SORT_OPTIONS;
 
 function TransactionsContent() {
   const { user } = useAuth();
@@ -26,6 +35,8 @@ function TransactionsContent() {
 
   const [typeFilter, setTypeFilter] = useState<TransactionType | "">("");
   const [accountId, setAccountId] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [sort, setSort] = useState<SortKey>("date_desc");
   const [attachmentsFor, setAttachmentsFor] = useState<{ id: string; keys: string[] } | null>(null);
   const [detailTx, setDetailTx] = useState<Transaction | null>(null);
 
@@ -34,16 +45,31 @@ function TransactionsContent() {
     queryFn: () => accountsApi.getAll(),
   });
 
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => categoriesApi.getAll(),
+  });
+  // One entry per name (the same name can exist as a built-in and as one of yours).
+  const categoryOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const c of categories ?? []) if (!seen.has(c.name.toLowerCase())) seen.set(c.name.toLowerCase(), c.id);
+    return [...(categories ?? [])]
+      .filter((c) => seen.get(c.name.toLowerCase()) === c.id)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [categories]);
+  const categoryName = categoryOptions.find((c) => c.id === categoryId)?.name;
+
   const { data, isLoading } = useQuery({
-    queryKey: ["transactions", "list", typeFilter, accountId],
+    queryKey: ["transactions", "list", typeFilter, accountId, categoryId, sort],
     queryFn: () =>
       transactionsApi.getAll({
         type: typeFilter || undefined,
         accountId: accountId || undefined,
+        categoryId: categoryId || undefined,
         page: 1,
         limit: 50,
-        sortBy: "date",
-        sortOrder: "DESC",
+        sortBy: SORT_OPTIONS[sort].sortBy,
+        sortOrder: SORT_OPTIONS[sort].sortOrder,
       }),
   });
 
@@ -78,7 +104,11 @@ function TransactionsContent() {
   const exportMut = useMutation({
     mutationFn: async () => {
       const accountName = (accounts ?? []).find((a) => a.id === accountId)?.name;
-      const filters = [typeFilter && `Type: ${typeFilter}`, accountName && `Account: ${accountName}`].filter(Boolean);
+      const filters = [
+        typeFilter && `Type: ${typeFilter}`,
+        accountName && `Account: ${accountName}`,
+        categoryName && `Category: ${categoryName}`,
+      ].filter(Boolean);
       // What is on screen: search results / text-filtered rows go by id; the plain list exports every match, not just the first page.
       const payload: ExportPdfPayload =
         aiResult || q
@@ -90,6 +120,7 @@ function TransactionsContent() {
           : {
               type: typeFilter || undefined,
               accountId: accountId || undefined,
+              categoryId: categoryId || undefined,
               title: "Transactions",
               subtitle: filters.join(" · ") || undefined,
             };
@@ -105,8 +136,26 @@ function TransactionsContent() {
     },
   });
 
-  const rows = useMemo(() => {
-    if (aiResult) return aiResult.items;
+  const rows = (() => {
+    if (aiResult) {
+      // Search results are already in hand, so the filters and sort apply to them here.
+      const { sortBy, sortOrder } = SORT_OPTIONS[sort];
+      const dir = sortOrder === "ASC" ? 1 : -1;
+      return aiResult.items
+        .filter(
+          (t) =>
+            (!typeFilter || t.type === typeFilter) &&
+            (!accountId || t.accountId === accountId || t.transferToAccountId === accountId) &&
+            (!categoryName || t.category?.name.toLowerCase() === categoryName.toLowerCase()),
+        )
+        .sort((a, b) => {
+          const d =
+            sortBy === "amount"
+              ? Number(a.amount) - Number(b.amount)
+              : a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt);
+          return d * dir;
+        });
+    }
     const items = data?.items ?? [];
     if (!q) return items;
     return items.filter((t) => {
@@ -114,7 +163,7 @@ function TransactionsContent() {
       const cat = (t.category?.name || "").toLowerCase();
       return note.includes(q) || cat.includes(q) || t.id.toLowerCase().includes(q);
     });
-  }, [data?.items, q, aiResult]);
+  })();
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => transactionsApi.remove(id),
@@ -225,6 +274,31 @@ function TransactionsContent() {
           {(accounts ?? []).map((a) => (
             <option key={a.id} value={a.id}>
               {a.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+          className="rounded-lg bg-surface-container-low px-4 py-2 text-sm font-medium text-on-surface"
+          aria-label="Filter by category"
+        >
+          <option value="">All categories</option>
+          {categoryOptions.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as SortKey)}
+          className="rounded-lg bg-surface-container-low px-4 py-2 text-sm font-medium text-on-surface"
+          aria-label="Sort transactions"
+        >
+          {(Object.keys(SORT_OPTIONS) as SortKey[]).map((k) => (
+            <option key={k} value={k}>
+              Sort: {SORT_OPTIONS[k].label}
             </option>
           ))}
         </select>
