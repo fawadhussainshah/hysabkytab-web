@@ -1,75 +1,53 @@
-name: Deploy Web
+name: Deploy web to pocket.fawad.xyz
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
-concurrency:
-  group: web-deploy-main
-  cancel-in-progress: true
+concurrency: deploy-web
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-
+    env:
+      HOST: ${{ secrets.DEPLOY_HOST }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      # Built here, not on the server: `next build` needs more RAM than the shared t3.medium can spare.
+      - name: Unit tests
+        run: npm ci && npm test
 
-      - name: Run unit tests
-        run: npm test
-
-      - name: Build on GitHub runner
+      - name: Build
         env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.WEB_NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_API_URL: https://pocket.fawad.xyz/v1
         run: |
-          if [ -z "$NEXT_PUBLIC_API_URL" ]; then
-            echo "WEB_NEXT_PUBLIC_API_URL is not set"
-            exit 1
-          fi
-          printf "NEXT_PUBLIC_API_URL=%s\n" "$NEXT_PUBLIC_API_URL" > .env.production
           npm run build
 
-      - name: Set up SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
-
-      - name: Add EC2 host to known_hosts
+      - name: SSH setup
         run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+          install -m 700 -d ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
 
-      - name: Sync build artifacts to EC2
+      - name: Upload
         run: |
-          ssh "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" "mkdir -p /home/${{ secrets.EC2_USER }}/apps/web"
-          rsync -az --delete \
-            .next \
-            public \
-            package.json \
-            package-lock.json \
-            next.config.ts \
-            "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/apps/web/"
+          rsync -az Dockerfile .dockerignore ubuntu@$HOST:/opt/hadi/hysabkytab-web/
+          rsync -az --delete .next/standalone .next/static ubuntu@$HOST:/opt/hadi/hysabkytab-web/.next/
+          rsync -az --delete public/ ubuntu@$HOST:/opt/hadi/hysabkytab-web/public/
 
-      - name: Install prod deps and restart web
+      - name: Rebuild and restart
         run: |
-          ssh "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" '
-            set -e
-            cd /home/${{ secrets.EC2_USER }}/apps/web
-            npm ci --omit=dev
-            pm2 restart pocket-web --update-env || pm2 start npm --name pocket-web --cwd /home/${{ secrets.EC2_USER }}/apps/web -- start -- -p 3001
-            pm2 save
-            pm2 status
-          '
+          ssh ubuntu@$HOST 'cd /opt/hadi/Hadi/deploy && docker compose build hysab-web && docker compose up -d hysab-web && docker image prune -f'
+
+      - name: Smoke test
+        run: |
+          sleep 10
+          curl -fsS -o /dev/null https://pocket.fawad.xyz/login

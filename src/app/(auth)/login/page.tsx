@@ -138,12 +138,14 @@ export default function LoginPage() {
               {pending ? "Signing in…" : "Sign in"}
             </button>
           </form>
-          <p className="mt-12 text-center font-medium text-on-surface-variant">
-            New to the ledger?{" "}
-            <Link href="/signup" className="ml-1 font-extrabold text-secondary hover:underline">
-              Create an account
-            </Link>
-          </p>
+          {process.env.NEXT_PUBLIC_SIGNUP_ENABLED === "true" && (
+            <p className="mt-12 text-center font-medium text-on-surface-variant">
+              New to the ledger?{" "}
+              <Link href="/signup" className="ml-1 font-extrabold text-secondary hover:underline">
+                Create an account
+              </Link>
+            </p>
+          )}
           <p className="mt-12 text-center text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/40">
             Secure session · Encrypted transport
           </p>

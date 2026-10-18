@@ -21,6 +21,7 @@ function publicApiUrl(): string {
 }
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   turbopack: {
     root: appRoot,
   },

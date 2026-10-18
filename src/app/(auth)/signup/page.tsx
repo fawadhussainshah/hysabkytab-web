@@ -11,6 +11,7 @@ import { referenceDataApi, type CountryOption } from "@/lib/api/reference-data.a
 export default function SignupPage() {
   const { signup } = useAuth();
   const router = useRouter();
+  const signupOpen = process.env.NEXT_PUBLIC_SIGNUP_ENABLED === "true";
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,6 +20,10 @@ export default function SignupPage() {
   const [currency, setCurrency] = useState<string>("PKR");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    if (!signupOpen) router.replace("/login");
+  }, [signupOpen, router]);
 
   useEffect(() => {
     let mounted = true;
@@ -54,6 +59,8 @@ export default function SignupPage() {
       setPending(false);
     }
   }
+
+  if (!signupOpen) return null;
 
   return (
     <div className="flex min-h-screen items-stretch bg-background">
