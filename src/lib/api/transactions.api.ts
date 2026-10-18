@@ -1,5 +1,6 @@
 import type {
   AiSearchResult,
+  ExportPdfPayload,
   CreateTransactionPayload,
   PaginatedTransactions,
   Transaction,
@@ -26,6 +27,16 @@ export const transactionsApi = {
     apiClient
       .post<{ data: AiSearchResult }>("/transactions/ai-search", { query }, { timeout: 40000 })
       .then(extractData),
+
+  /** Branded PDF statement; resolves to the file and the name the server chose. */
+  exportPdf: async (payload: ExportPdfPayload) => {
+    const res = await apiClient.post<Blob>("/transactions/export-pdf", payload, {
+      responseType: "blob",
+      timeout: 90000,
+    });
+    const match = /filename="?([^";]+)"?/i.exec(String(res.headers["content-disposition"] ?? ""));
+    return { blob: res.data, filename: match?.[1] ?? "HysabKytab_statement.pdf" };
+  },
 
   remove: (id: string) => apiClient.delete(`/transactions/${id}`),
 };

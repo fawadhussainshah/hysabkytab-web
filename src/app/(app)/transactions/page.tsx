@@ -15,7 +15,7 @@ import { formatMoney, formatMoneySigned } from "@/lib/format";
 import { getTransactionAttachmentKeys } from "@/lib/utils/transaction-attachments";
 import { TransactionAttachmentsModal } from "@/components/transaction-attachments-modal";
 import { TransactionDetailModal } from "@/components/transaction-detail-modal";
-import type { AiSearchResult, Transaction } from "@/lib/types/transaction.types";
+import type { AiSearchResult, ExportPdfPayload, Transaction } from "@/lib/types/transaction.types";
 
 function TransactionsContent() {
   const { user } = useAuth();
@@ -74,6 +74,36 @@ function TransactionsContent() {
     setAiResult(null);
     setAiError(null);
   };
+
+  const exportMut = useMutation({
+    mutationFn: async () => {
+      const accountName = (accounts ?? []).find((a) => a.id === accountId)?.name;
+      const filters = [typeFilter && `Type: ${typeFilter}`, accountName && `Account: ${accountName}`].filter(Boolean);
+      // What is on screen: search results / text-filtered rows go by id; the plain list exports every match, not just the first page.
+      const payload: ExportPdfPayload =
+        aiResult || q
+          ? {
+              ids: rows.map((r) => r.id),
+              title: aiResult ? "Search results" : "Transactions",
+              subtitle: aiResult ? aiResult.interpreted.summary : `Matching "${q}"`,
+            }
+          : {
+              type: typeFilter || undefined,
+              accountId: accountId || undefined,
+              title: "Transactions",
+              subtitle: filters.join(" · ") || undefined,
+            };
+      const { blob, filename } = await transactionsApi.exportPdf(payload);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    },
+  });
 
   const rows = useMemo(() => {
     if (aiResult) return aiResult.items;
@@ -198,7 +228,19 @@ function TransactionsContent() {
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          onClick={() => exportMut.mutate()}
+          disabled={exportMut.isPending || rows.length === 0}
+          className="ml-auto inline-flex items-center gap-2 rounded-lg bg-surface-container-low px-4 py-2 text-sm font-semibold text-primary hover:bg-surface-container disabled:opacity-60"
+        >
+          <MaterialIcon name="download" className="text-lg" />
+          {exportMut.isPending ? "Preparing PDF…" : "Export PDF"}
+        </button>
       </div>
+      {exportMut.isError && (
+        <p className="-mt-3 mb-4 text-sm font-medium text-error">Could not create the PDF. Please try again.</p>
+      )}
 
       <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm">
         {isLoading ? (

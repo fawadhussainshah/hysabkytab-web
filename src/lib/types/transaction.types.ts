@@ -64,3 +64,14 @@ export interface AiSearchResult {
   totals: { expense: number; income: number; transfer: number };
   interpreted: { summary: string; chips: string[] };
 }
+
+export interface ExportPdfPayload {
+  ids?: string[];
+  type?: TransactionType;
+  accountId?: string;
+  categoryId?: string;
+  startDate?: string;
+  endDate?: string;
+  title?: string;
+  subtitle?: string;
+}
