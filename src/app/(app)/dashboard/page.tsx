@@ -64,6 +64,12 @@ export default function DashboardPage() {
     .sort((a, b) => (b.percentage ?? 0) - (a.percentage ?? 0))
     .slice(0, 3);
 
+  // "My accounts": only accounts that hold or owe something, biggest amounts first (money owed counts as big too).
+  const activeAccounts = (accounts ?? [])
+    .filter((a) => Number(a.balance) !== 0)
+    .sort((x, y) => Math.abs(Number(y.balance)) - Math.abs(Number(x.balance)));
+  const hiddenAccounts = (accounts?.length ?? 0) - Math.min(activeAccounts.length, 5);
+
   const maxTrend = Math.max(
     1,
     ...(trends ?? []).map((t) => Math.max(t.income, t.expense)),
@@ -356,7 +362,7 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="space-y-4">
-            {(accounts ?? []).slice(0, 5).map((acc) => (
+            {activeAccounts.slice(0, 5).map((acc) => (
               <Link
                 key={acc.id}
                 href={`/accounts/${acc.id}`}
@@ -382,13 +388,21 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 </div>
-                <p className="currency-font text-sm font-black text-on-surface">
+                <p className={`currency-font text-sm font-black ${Number(acc.balance) < 0 ? "text-error" : "text-on-surface"}`}>
                   {formatMoney(acc.balance, acc.currency)}
                 </p>
               </Link>
             ))}
             {(!accounts || accounts.length === 0) && (
               <p className="text-sm text-on-surface-variant">No accounts yet.</p>
+            )}
+            {accounts && accounts.length > 0 && activeAccounts.length === 0 && (
+              <p className="text-sm text-on-surface-variant">No accounts with a balance right now.</p>
+            )}
+            {accounts && accounts.length > 0 && hiddenAccounts > 0 && (
+              <Link href="/accounts" className="block text-center text-xs font-bold text-primary hover:underline">
+                View all {accounts.length} accounts
+              </Link>
             )}
             <Link
               href="/accounts/new"
