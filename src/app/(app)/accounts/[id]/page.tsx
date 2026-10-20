@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AccountIcon } from "@/components/account-icon";
+import { TransactionsExplorer } from "@/components/transactions-explorer";
 import { MaterialIcon } from "@/components/material-icon";
 import { accountsApi } from "@/lib/api/accounts.api";
 import { formatMoney } from "@/lib/format";
@@ -27,7 +28,8 @@ export default function AccountDetailPage() {
       <Link href="/accounts" className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-primary">
         <MaterialIcon name="arrow_back" /> All accounts
       </Link>
-      <div className="max-w-xl rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-8 shadow-sm">
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-5 shadow-sm sm:p-8">
+        <div className="min-w-0">
         <div className="mb-6 flex items-center gap-4">
           <div
             className="flex h-14 w-14 items-center justify-center rounded-full"
@@ -48,13 +50,22 @@ export default function AccountDetailPage() {
             </p>
           </div>
         </div>
-        <p className="currency-font text-3xl font-black text-primary">
+        <p className={`currency-font text-3xl font-black ${Number(account.balance) < 0 ? "text-error" : "text-primary"}`}>
           {formatMoney(account.balance, account.currency)}
         </p>
         <p className="mt-4 text-sm text-on-surface-variant">
           Balances update automatically when you add transactions involving this account.
         </p>
+        </div>
+        <Link
+          href={`/transactions/new?accountId=${account.id}`}
+          className="rounded-xl bg-gradient-to-br from-primary to-primary-container px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/10"
+        >
+          Add transaction
+        </Link>
       </div>
+      <h3 className="mb-4 text-lg font-black text-on-surface">Transactions</h3>
+      <TransactionsExplorer fixedAccount={{ id: account.id, name: account.name }} />
     </>
   );
 }

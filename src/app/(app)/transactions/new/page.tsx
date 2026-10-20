@@ -39,7 +39,10 @@ export default function NewTransactionPage() {
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [date, setDate] = useState(dayjs().format("YYYY-MM-DD"));
-  const [accountId, setAccountId] = useState("");
+  // Opened from an account page ("/transactions/new?accountId=…") → start with that account selected.
+  const [accountId, setAccountId] = useState(() =>
+    typeof window === "undefined" ? "" : (new URLSearchParams(window.location.search).get("accountId") ?? ""),
+  );
   const [categoryId, setCategoryId] = useState("");
   const [transferToAccountId, setTransferToAccountId] = useState("");
   const [error, setError] = useState<string | null>(null);

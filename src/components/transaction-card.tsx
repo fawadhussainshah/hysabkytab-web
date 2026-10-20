@@ -12,15 +12,24 @@ export function TransactionCard({
   currency,
   onOpen,
   actions,
+  perspectiveAccountId,
 }: {
   row: Transaction;
   currency: string;
+  /** Viewing one account: a transfer into it reads as money in (+), out of it as money out (−). */
+  perspectiveAccountId?: string;
   onOpen: () => void;
   actions?: React.ReactNode;
 }) {
   const cur = row.currency || currency;
+  const incomingTransfer =
+    !!perspectiveAccountId && row.type === "transfer" && row.transferToAccountId === perspectiveAccountId && row.accountId !== perspectiveAccountId;
   const amountClass =
-    row.type === "income" ? "text-secondary" : row.type === "expense" ? "text-tertiary" : "text-on-surface";
+    row.type === "income" || incomingTransfer
+      ? "text-secondary"
+      : row.type === "expense" || (!!perspectiveAccountId && row.type === "transfer")
+        ? "text-tertiary"
+        : "text-on-surface";
   return (
     <div className="px-4 py-3">
       <div
@@ -46,7 +55,11 @@ export function TransactionCard({
           <div className="flex items-start justify-between gap-3">
             <p className="min-w-0 break-words text-sm font-semibold text-on-surface">{row.note || row.category?.name || row.type}</p>
             <p className={`shrink-0 text-sm font-black ${amountClass}`}>
-              {row.type === "transfer" ? formatMoney(row.amount, cur) : formatMoneySigned(row.amount, cur, row.type)}
+              {row.type === "transfer"
+                ? perspectiveAccountId
+                  ? `${incomingTransfer ? "+" : "-"}${formatMoney(row.amount, cur)}`
+                  : formatMoney(row.amount, cur)
+                : formatMoneySigned(row.amount, cur, row.type)}
             </p>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-on-surface-variant">
