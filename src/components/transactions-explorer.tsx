@@ -16,6 +16,8 @@ import { formatMoney, formatMoneySigned } from "@/lib/format";
 import { getTransactionAttachmentKeys } from "@/lib/utils/transaction-attachments";
 import { TransactionAttachmentsModal } from "@/components/transaction-attachments-modal";
 import { SelectField } from "@/components/select-field";
+import { DATE_PRESETS, dateRange, type DatePreset } from "@/lib/utils/date-range";
+import { TransactionsSummary, type SummaryNumbers } from "@/components/transactions-summary";
 import { SourceTag } from "@/components/source-tag";
 import { TransactionCard } from "@/components/transaction-card";
 import { TransactionDetailModal } from "@/components/transaction-detail-modal";
@@ -34,44 +36,6 @@ const FILTER_CLASS =
 
 type SourceFilter = "" | "sms" | "hadi" | "manual";
 
-const DATE_PRESETS = {
-  all: "All time",
-  today: "Today",
-  week: "This week",
-  month: "This month",
-  lastMonth: "Last month",
-  last30: "Last 30 days",
-  year: "This year",
-  custom: "Custom range…",
-} as const;
-type DatePreset = keyof typeof DATE_PRESETS;
-
-/** Inclusive YYYY-MM-DD bounds for a preset (undefined = open-ended). */
-function dateRange(preset: DatePreset, from: string, to: string): { startDate?: string; endDate?: string } {
-  const f = (d: dayjs.Dayjs) => d.format("YYYY-MM-DD");
-  const now = dayjs();
-  switch (preset) {
-    case "today":
-      return { startDate: f(now), endDate: f(now) };
-    case "week":
-      return { startDate: f(now.startOf("week")), endDate: f(now) };
-    case "month":
-      return { startDate: f(now.startOf("month")), endDate: f(now) };
-    case "lastMonth": {
-      const m = now.subtract(1, "month");
-      return { startDate: f(m.startOf("month")), endDate: f(m.endOf("month")) };
-    }
-    case "last30":
-      return { startDate: f(now.subtract(29, "day")), endDate: f(now) };
-    case "year":
-      return { startDate: f(now.startOf("year")), endDate: f(now) };
-    case "custom":
-      return { startDate: from || undefined, endDate: to || undefined };
-    default:
-      return {};
-  }
-}
-
 /** The filterable, sortable, exportable transaction list (with AI search). Pass `fixedAccount` to show one account's activity. */
 function ExplorerContent({ fixedAccount }: { fixedAccount?: { id: string; name: string } }) {
   const { user } = useAuth();
@@ -86,7 +50,8 @@ function ExplorerContent({ fixedAccount }: { fixedAccount?: { id: string; name: 
   const [categoryId, setCategoryId] = useState("");
   const [sort, setSort] = useState<SortKey>("date_desc");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("");
-  const [datePreset, setDatePreset] = useState<DatePreset>("all");
+  // An account page opens on this month, so it leads with the balance at the start of the month and the month's money in/out.
+  const [datePreset, setDatePreset] = useState<DatePreset>(fixedAccount ? "month" : "all");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const { startDate, endDate } = dateRange(datePreset, customFrom, customTo);
@@ -234,6 +199,32 @@ function ExplorerContent({ fixedAccount }: { fixedAccount?: { id: string; name: 
       return note.includes(q) || cat.includes(q) || t.id.toLowerCase().includes(q);
     });
   })();
+
+  // Totals for everything the filters match. Search results / text filters are held in the browser, so those are added up from the rows shown.
+  const clientSide = !!aiResult || !!q;
+  const filtersOn = !!typeFilter || !!accountPick || !!categoryId || !!sourceFilter || datePreset !== "all";
+  const showSummary = !!fixedAccount || filtersOn || clientSide;
+  const summaryFilter = {
+    type: typeFilter || undefined,
+    accountId: accountId || undefined,
+    categoryId: categoryId || undefined,
+    source: sourceFilter || undefined,
+    startDate,
+    endDate,
+  };
+  const { data: serverSummary, isLoading: summaryLoading } = useQuery({
+    queryKey: ["transactions", "summary", summaryFilter],
+    queryFn: () => transactionsApi.summary(summaryFilter),
+    enabled: showSummary && !clientSide,
+  });
+  const localSummary: SummaryNumbers = (() => {
+    const sum = (t: string) => rows.filter((r) => r.type === t).reduce((x, r) => x + Number(r.amount), 0);
+    const income = sum("income");
+    const expense = sum("expense");
+    return { count: rows.length, income, expense, transfer: sum("transfer"), net: income - expense };
+  })();
+  const periodLabel =
+    datePreset === "all" ? undefined : datePreset === "custom" ? `${customFrom || "…"} → ${customTo || "…"}` : DATE_PRESETS[datePreset];
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => transactionsApi.remove(id),
@@ -404,6 +395,15 @@ function ExplorerContent({ fixedAccount }: { fixedAccount?: { id: string; name: 
       </div>
       {exportMut.isError && (
         <p className="-mt-3 mb-4 text-sm font-medium text-error">Could not create the PDF. Please try again.</p>
+      )}
+
+      {showSummary && (
+        <TransactionsSummary
+          data={clientSide ? localSummary : serverSummary}
+          loading={!clientSide && summaryLoading}
+          currency={currency}
+          period={periodLabel}
+        />
       )}
 
       <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm">

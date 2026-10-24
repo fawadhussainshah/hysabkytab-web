@@ -6,6 +6,8 @@ import { useMemo, useState } from "react";
 import { AccountIcon } from "@/components/account-icon";
 import { SelectField } from "@/components/select-field";
 import { accountsApi } from "@/lib/api/accounts.api";
+import { transactionsApi } from "@/lib/api/transactions.api";
+import { DATE_PRESETS, dateRange, type DatePreset } from "@/lib/utils/date-range";
 import { formatMoney } from "@/lib/format";
 
 const SORTS = {
@@ -14,6 +16,7 @@ const SORTS = {
   name: "Name: A to Z",
 } as const;
 type SortKey = keyof typeof SORTS;
+const PERIODS = (Object.keys(DATE_PRESETS) as DatePreset[]).filter((k) => k !== "custom");
 
 const FIELD =
   "w-full min-w-0 rounded-lg bg-surface-container-low px-3 py-2 text-sm font-medium text-on-surface sm:w-auto sm:px-4";
@@ -39,6 +42,7 @@ export default function AccountsPage() {
   const qc = useQueryClient();
   const [sort, setSort] = useState<SortKey>(() => (typeof window === "undefined" ? "high" : remembered<SortKey>("sort", "high")));
   const [hideZero, setHideZero] = useState(() => (typeof window === "undefined" ? false : remembered<boolean>("hideZero", false)));
+  const [period, setPeriod] = useState<DatePreset>(() => (typeof window === "undefined" ? "month" : remembered<DatePreset>("period", "month")));
   const [type, setType] = useState("");
   const [search, setSearch] = useState("");
   const [minText, setMinText] = useState("");
@@ -48,6 +52,13 @@ export default function AccountsPage() {
     queryKey: ["accounts"],
     queryFn: () => accountsApi.getAll(),
   });
+
+  const { startDate, endDate } = dateRange(period, "", "");
+  const { data: periodRows } = useQuery({
+    queryKey: ["transactions", "accounts-summary", startDate, endDate],
+    queryFn: () => transactionsApi.accountsSummary(startDate, endDate),
+  });
+  const periodById = useMemo(() => new Map((periodRows ?? []).map((r) => [r.accountId, r])), [periodRows]);
 
   const typeOptions = useMemo(() => {
     const kinds = [...new Set((accounts ?? []).map((a) => a.type))].sort();
@@ -112,6 +123,16 @@ export default function AccountsPage() {
               placeholder="Search accounts…"
               aria-label="Search accounts"
               className="col-span-2 w-full min-w-0 rounded-lg bg-surface-container-low px-4 py-2 text-sm font-medium text-on-surface sm:w-56"
+            />
+            <SelectField
+              value={period}
+              onChange={(v) => {
+                setPeriod(v as DatePreset);
+                remember("period", v);
+              }}
+              ariaLabel="Period for opening balance and money in/out"
+              className={FIELD}
+              options={PERIODS.map((k) => ({ value: k, label: `Period: ${DATE_PRESETS[k]}` }))}
             />
             <SelectField
               value={sort}
@@ -206,6 +227,19 @@ export default function AccountsPage() {
                   <p className="text-xs uppercase tracking-wider text-on-surface-variant">
                     {a.type.replace("_", " ")} {a.isDefault && "· Default"}
                   </p>
+                  {(() => {
+                    const p = periodById.get(a.id);
+                    if (!p) return null;
+                    return (
+                      <p className="mt-1 text-xs text-on-surface-variant">
+                        <span title="Balance at the start of the period">Start {formatMoney(p.openingBalance, a.currency)}</span>
+                        {" · "}
+                        <span className="font-semibold text-secondary">In +{formatMoney(p.inflow, a.currency)}</span>
+                        {" · "}
+                        <span className="font-semibold text-error">Out −{formatMoney(p.outflow, a.currency)}</span>
+                      </p>
+                    );
+                  })()}
                 </div>
               </Link>
               <div className="flex items-center gap-6">

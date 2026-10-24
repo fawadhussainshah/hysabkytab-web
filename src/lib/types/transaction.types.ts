@@ -79,3 +79,26 @@ export interface ExportPdfPayload {
   title?: string;
   subtitle?: string;
 }
+
+export interface TransactionSummary {
+  count: number;
+  income: number;
+  expense: number;
+  transfer: number;
+  net: number;
+  /** Only when a single account is selected: money in/out (transfers count) and its balances for the period. */
+  inflow?: number;
+  outflow?: number;
+  openingBalance?: number;
+  closingBalance?: number;
+  currentBalance?: number;
+}
+
+export interface AccountPeriodSummary {
+  accountId: string;
+  openingBalance: number;
+  inflow: number;
+  outflow: number;
+  closingBalance: number;
+  currentBalance: number;
+}

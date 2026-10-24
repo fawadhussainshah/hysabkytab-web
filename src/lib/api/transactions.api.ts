@@ -1,5 +1,7 @@
 import type {
+  AccountPeriodSummary,
   AiSearchResult,
+  TransactionSummary,
   ExportPdfPayload,
   CreateTransactionPayload,
   PaginatedTransactions,
@@ -22,6 +24,18 @@ export const transactionsApi = {
 
   update: (id: string, data: Partial<CreateTransactionPayload>) =>
     apiClient.patch<{ data: Transaction }>(`/transactions/${id}`, data).then(extractData),
+
+  /** Totals for everything the filters match (every page, not just what is loaded). */
+  summary: (filter?: TransactionFilter) =>
+    apiClient
+      .get<{ data: TransactionSummary }>("/transactions/summary", { params: filter })
+      .then(extractData),
+
+  /** Per account: balance at the start of the period, inflow, outflow, balance at the end. */
+  accountsSummary: (startDate?: string, endDate?: string) =>
+    apiClient
+      .get<{ data: AccountPeriodSummary[] }>("/transactions/accounts-summary", { params: { startDate, endDate } })
+      .then(extractData),
 
   aiSearch: (query: string) =>
     apiClient
