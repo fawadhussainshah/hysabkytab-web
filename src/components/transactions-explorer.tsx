@@ -143,6 +143,10 @@ function ExplorerContent({ fixedAccount }: { fixedAccount?: { id: string; name: 
         aiResult || q
           ? {
               ids: rows.map((r) => r.id),
+              // For an account, keep its balances at the start and end of the period on the statement.
+              accountId: accountId || undefined,
+              startDate,
+              endDate,
               title: fixedAccount?.name ?? (aiResult ? "Search results" : "Transactions"),
               subtitle: aiResult ? aiResult.interpreted.summary : `Matching "${q}"`,
             }
