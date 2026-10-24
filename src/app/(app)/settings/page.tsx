@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { BackupCard } from "@/components/backup-card";
 import { MaterialIcon } from "@/components/material-icon";
 import { UserAvatar } from "@/components/user-avatar";
 import { referenceDataApi, type CountryOption } from "@/lib/api/reference-data.api";
@@ -304,6 +305,8 @@ export default function SettingsPage() {
             </label>
           </div>
         </section>
+
+        <BackupCard />
 
         <section className="rounded-2xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm">
           <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-on-surface">
